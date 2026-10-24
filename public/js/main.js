@@ -423,10 +423,12 @@ function showSummary() {
   const n = ok.length, misses = rs.length - n;
   if (n) {
     const avgC = ok.reduce((s, r) => s + r.abs, 0) / n;
-    const avgHz = ok.reduce((s, r) => s + Math.abs(r.diff), 0) / n;
+    // each Hz miss is scaled to what it would be at 440 Hz before averaging, since the same
+    // Hz gap is a bigger miss on a low note than on a high one
+    const avgHz = ok.reduce((s, r) => s + Math.abs(r.diff) * 440 / r.ref, 0) / n;
     const best = ok.reduce((b, r) => (r.abs < b.abs ? r : b), ok[0]);
     $('sAvgHz').textContent = `${avgHz.toFixed(2)} Hz`;
-    $('sAvgTone').textContent = `${fractionText(avgC, unit)} · ${avgC.toFixed(1)} cents` + (misses ? ` · ${misses} round${misses > 1 ? 's' : ''} with no note` : '');
+    $('sAvgTone').textContent = `at 440 Hz · ${fractionText(avgC, unit)} · ${avgC.toFixed(1)} cents` + (misses ? ` · ${misses} round${misses > 1 ? 's' : ''} with no note` : '');
     $('sBest').textContent = `Round ${best.round}`;
     $('sBestSub').textContent = `${Math.abs(best.diff).toFixed(2)} Hz · ${fractionText(best.abs, unit)}`;
     const prev = store.get(bestKey(game.mode));
