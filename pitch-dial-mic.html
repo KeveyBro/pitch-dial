@@ -1,0 +1,1374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pitch Dial</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Azeret+Mono:wght@400;500;700&display=swap">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+/* Layout: one centred instrument panel. The amber, backlit tuning dial is the only loud element; everything around it stays enamel-quiet. */
+:root{
+  --bg:#E6E8E2;
+  --panel:#F6F6F2;
+  --ink:#1B201E;
+  --muted:#58605B;
+  --rule:#CACDC4;
+  --dial:#F4C86E;
+  --dial-deep:#D08D29;
+  --dial-ink:#3B2A10;
+  --needle:#C42F1A;
+  --good:#2B7855;
+  --fair:#986100;
+  --far:#B0372A;
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"Azeret Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A1C; --panel:#1C2326; --ink:#E5E8E3; --muted:#9AA39F; --rule:#323D41;
+    --dial:#EDAE45; --dial-deep:#AD6A16; --dial-ink:#2A1904; --needle:#FF5B3D;
+    --good:#5BC292; --fair:#E2A94A; --far:#F27A66;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141A1C; --panel:#1C2326; --ink:#E5E8E3; --muted:#9AA39F; --rule:#323D41;
+  --dial:#EDAE45; --dial-deep:#AD6A16; --dial-ink:#2A1904; --needle:#FF5B3D;
+  --good:#5BC292; --fair:#E2A94A; --far:#F27A66;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
+.wrap{max-width:680px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:grid;gap:18px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.eyebrow{font:600 11px/1.2 var(--font-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{margin:6px 0 0;font-family:var(--font-display);font-stretch:125%;font-weight:800;font-size:clamp(2rem,7vw,2.6rem);line-height:1;letter-spacing:-.01em;text-wrap:balance}
+h2{margin:0;font-family:var(--font-display);font-stretch:118%;font-weight:800;font-size:1.6rem;line-height:1.1;text-wrap:balance}
+.status{display:flex;align-items:center;flex-wrap:wrap;gap:12px;font:500 13px var(--font-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* panels */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:16px;padding:clamp(16px,4vw,26px);display:grid;gap:22px;min-width:0}
+.panel:not([hidden]){animation:rise .22s ease-out}
+@keyframes rise{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+.lede{margin:0;max-width:60ch}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+p.small{margin:0}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;font:600 15px/1.2 var(--font-body);padding:12px 18px;border-radius:10px;border:1px solid var(--rule);background:transparent;color:var(--ink);cursor:pointer;touch-action:manipulation;text-align:center}
+.btn:hover{border-color:var(--muted)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.btn.primary:hover:not(:disabled){opacity:.92}
+.btn.slim{padding:6px 12px;font-size:13px;border-radius:8px}
+.btn:focus-visible,.seg input:focus-visible + span,input[type=range]:focus-visible,input[type=checkbox]:focus-visible,.sr-only:focus-visible + label{outline:2px solid var(--needle);outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.actions .primary{flex:1 1 180px}
+
+/* example */
+.example{display:grid;gap:8px;padding:14px 16px;border-radius:12px;background:var(--bg);border:1px solid var(--rule);background:color-mix(in oklab, var(--dial) 16%, var(--panel));border-color:color-mix(in oklab, var(--dial-deep) 40%, var(--panel))}
+.ex-row{display:flex;flex-wrap:wrap;gap:6px 20px;font:500 14px var(--font-mono);font-variant-numeric:tabular-nums}
+.ex-row b{font-weight:700}
+.ex-verdict{margin:0;font-size:15px}
+.ex-verdict strong{font-family:var(--font-display);font-stretch:112%;font-weight:700}
+
+/* settings */
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px 28px}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:8px;min-width:0;align-content:start}
+legend{padding:0;margin-bottom:8px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{position:relative;display:inline-flex}
+.seg input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.seg span{display:inline-block;padding:7px 13px;border:1px solid var(--rule);border-radius:999px;font-size:14px;cursor:pointer;font-variant-numeric:tabular-nums}
+.seg label:hover span{border-color:var(--muted)}
+.seg input:checked + span{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.help{margin:0;font-size:13px;color:var(--muted);max-width:46ch}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
+.check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--ink);flex:none}
+.vol{display:flex;align-items:center;gap:12px}
+.vol input{flex:1;min-width:0}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.formfoot{display:grid;gap:10px}
+.error{margin:0;color:var(--far);font-size:14px}
+
+/* listen */
+.stage{display:grid;justify-items:center;gap:14px}
+.scope-box{position:relative;width:100%}
+#scope{display:block;width:100%;height:140px}
+.countdown{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-display);font-stretch:125%;font-weight:800;font-size:5.5rem;line-height:1;font-variant-numeric:tabular-nums;pointer-events:none}
+.phase-label{margin:0;font-family:var(--font-display);font-stretch:112%;font-weight:700;font-size:1.4rem}
+
+/* bars */
+.bar{width:100%;height:4px;border-radius:2px;background:var(--rule);overflow:hidden}
+.bar > span{display:block;height:100%;background:var(--ink);transform-origin:left center;transform:scaleX(0)}
+.bar.thick{height:8px;border-radius:4px}
+.bar.hold > span{background:var(--good)}
+.bar.level > span{background:var(--muted);transition:transform .05s linear}
+.timer{display:grid;gap:6px}
+.timer-row{display:flex;justify-content:space-between;gap:10px;font:500 13px var(--font-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.timer.low .bar > span{background:var(--far)}
+.timer.low .timer-left{color:var(--far)}
+
+/* tuner */
+.face{display:grid;gap:10px;justify-items:center;touch-action:none;user-select:none;-webkit-user-select:none;cursor:ns-resize;border-radius:12px;padding:6px 0;outline:none}
+.face:focus-visible{outline:2px solid var(--needle);outline-offset:4px}
+.face.sing{touch-action:auto;cursor:default}
+.readout{display:flex;align-items:baseline;gap:.22em;font-family:var(--font-mono);font-weight:500;font-size:clamp(3rem,13vw,4.6rem);line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.readout .unit{font-size:.32em;color:var(--muted);letter-spacing:0}
+.note{font:500 14px var(--font-mono);color:var(--muted)}
+.dialwrap{width:100%;border-radius:10px;overflow:hidden;border:1px solid var(--dial-deep)}
+.dialwrap canvas{display:block;width:100%;height:96px}
+#dial{cursor:ew-resize}
+.face.dragging #dial{cursor:grabbing}
+.hint{margin:0;font-size:13px;color:var(--muted);text-align:center;max-width:54ch}
+.coarse{display:grid;gap:4px}
+.coarse-ends{display:flex;justify-content:space-between;font:500 12px var(--font-mono);color:var(--muted)}
+.nudges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.nudges .btn{font-family:var(--font-mono);font-weight:500;padding:12px 0;user-select:none;-webkit-user-select:none}
+
+/* singing */
+.sing-state{margin:0;font-family:var(--font-display);font-stretch:112%;font-weight:700;font-size:1.15rem;text-align:center}
+.meters{display:grid;gap:10px;width:100%}
+.meter-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center;font:500 12px var(--font-mono);color:var(--muted)}
+.upload{display:grid;gap:12px;padding:16px;border:1px dashed var(--rule);border-radius:12px}
+.upload .sing-state{text-align:left}
+
+/* result */
+.res-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.chip{display:inline-flex;align-items:center;padding:4px 11px;border-radius:999px;font:600 12px var(--font-body);letter-spacing:.05em;text-transform:uppercase;color:var(--grade);border:1px solid currentColor;background:color-mix(in oklab, var(--grade) 13%, transparent)}
+[data-grade="good"]{--grade:var(--good)}
+[data-grade="fair"]{--grade:var(--fair)}
+[data-grade="far"]{--grade:var(--far)}
+[data-grade="best"]{--grade:var(--needle)}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pair > div{display:grid;gap:4px;padding:12px 14px;border-radius:12px;background:var(--bg);min-width:0}
+.val{font:500 clamp(1.35rem,6vw,2rem)/1.1 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.val small{font-size:.5em;color:var(--muted);letter-spacing:0}
+.verdict{display:grid;gap:6px}
+.v-hz{margin:0;font-family:var(--font-display);font-stretch:118%;font-weight:800;font-size:clamp(1.6rem,6.4vw,2.15rem);line-height:1.08;text-wrap:balance}
+.v-tone{margin:0;font-family:var(--font-display);font-stretch:108%;font-weight:600;font-size:clamp(1.2rem,4.8vw,1.5rem);line-height:1.2;text-wrap:balance}
+.v-cents{margin:0;font:500 13px var(--font-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* gauge */
+.gauge{display:grid;gap:4px}
+.g-ends{display:flex;justify-content:space-between;font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.g-track{position:relative;height:66px;margin-inline:14px}
+.g-track::before{content:"";position:absolute;left:0;right:0;top:28px;height:2px;background:var(--rule)}
+.g-tick{position:absolute;top:23px;width:1px;height:12px;background:var(--muted);transform:translateX(-50%)}
+.g-label{position:absolute;top:42px;transform:translateX(-50%);font:500 11px var(--font-mono);color:var(--muted);white-space:nowrap}
+.g-target{position:absolute;top:12px;width:2px;height:34px;background:var(--ink);transform:translateX(-50%)}
+.g-target-label{position:absolute;top:47px;left:50%;transform:translateX(-50%);font:600 10px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.g-you{position:absolute;top:21px;width:16px;height:16px;border-radius:50%;background:var(--grade);box-shadow:0 0 0 3px var(--panel);transform:translateX(-50%)}
+.g-you-label{position:absolute;top:0;transform:translateX(-50%);font:700 11px var(--font-body);color:var(--grade);white-space:nowrap}
+.g-you-label.edge-r{transform:translateX(-100%)}
+.g-you-label.edge-l{transform:none}
+
+/* summary */
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.tiles{grid-template-columns:minmax(0,1fr)}}
+.tile{display:grid;gap:4px;align-content:start;padding:14px;border-radius:12px;background:var(--bg);min-width:0}
+.tile b{font:500 1.45rem/1.15 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tile .sub{font-size:13px;color:var(--muted)}
+.tablewrap{overflow-x:auto;min-width:0}
+table{width:100%;border-collapse:collapse;font:400 13px var(--font-mono);font-variant-numeric:tabular-nums}
+th{font:600 11px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px 10px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+tr:last-child td{border-bottom:0}
+.sumhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.refline{margin:0;font-size:14px;color:var(--muted);max-width:62ch}
+
+@media (prefers-reduced-motion: reduce){
+  .panel:not([hidden]){animation:none}
+  .btn:active{transform:none}
+  .bar.level > span{transition:none}
+}
+</style>
+
+<main class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Ear training · frequency matching</div>
+      <h1>Pitch Dial</h1>
+    </div>
+    <div class="status" id="status" hidden>
+      <span id="roundLabel">Round 1 of 10</span>
+      <span id="scoreLabel">0 pts</span>
+      <button class="btn slim" id="endBtn" type="button">End game</button>
+    </div>
+  </header>
+
+  <!-- SETUP -->
+  <section class="panel" id="screen-setup">
+    <p class="lede">Listen to a tone, then match it by turning the dial or by singing. After each round you see how far off you were in hertz and as a fraction of a tone.</p>
+
+    <div class="example" aria-label="Example result">
+      <span class="eyebrow">Example round</span>
+      <div class="ex-row"><span>Target <b>440.00 Hz</b></span><span>You <b>446.20 Hz</b></span></div>
+      <p class="ex-verdict"><strong id="exHz">6.20 Hz too high</strong> · <span id="exTone">≈ 1/8 of a tone too high</span> · <span class="muted" id="exCents">+24.2 cents</span></p>
+    </div>
+
+    <form id="setupForm" class="formfoot" novalidate>
+      <div class="settings">
+        <fieldset>
+          <legend class="eyebrow">Answer by</legend>
+          <div class="seg">
+            <label><input type="radio" name="answer" id="answer-dial" value="dial"><span>Turning the dial</span></label>
+            <label><input type="radio" name="answer" id="answer-sing" value="sing"><span>Singing</span></label>
+          </div>
+          <div id="singOpts" hidden>
+            <div style="display:grid;gap:8px">
+              <label class="check" for="octFold"><input type="checkbox" id="octFold" name="octfold" checked><span>Count the same note in any octave</span></label>
+              <p class="help">Singing uses your microphone. If the microphone is blocked on this page, you can upload a voice recording of each note instead.</p>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Listen time</legend>
+          <div class="seg">
+            <label><input type="radio" name="listen" id="listen-noob" value="noob"><span>5 s</span></label>
+            <label><input type="radio" name="listen" id="listen-easy" value="easy"><span>2.5 s</span></label>
+            <label><input type="radio" name="listen" id="listen-hard" value="hard"><span>Random</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Time to answer</legend>
+          <div class="seg">
+            <label><input type="radio" name="tunetime" id="tune-30" value="30"><span>30 s</span></label>
+            <label><input type="radio" name="tunetime" id="tune-60" value="60"><span>60 s</span></label>
+            <label><input type="radio" name="tunetime" id="tune-0" value="0"><span>No limit</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Rounds</legend>
+          <div class="seg">
+            <label><input type="radio" name="rounds" id="rounds-5" value="5"><span>5</span></label>
+            <label><input type="radio" name="rounds" id="rounds-10" value="10"><span>10</span></label>
+            <label><input type="radio" name="rounds" id="rounds-20" value="20"><span>20</span></label>
+          </div>
+        </fieldset>
+        <fieldset id="rangeDial">
+          <legend class="eyebrow">Frequency range</legend>
+          <div class="seg">
+            <label><input type="radio" name="range" id="range-low" value="low"><span>80–320 Hz</span></label>
+            <label><input type="radio" name="range" id="range-mid" value="mid"><span>150–900 Hz</span></label>
+            <label><input type="radio" name="range" id="range-wide" value="wide"><span>60–2000 Hz</span></label>
+          </div>
+        </fieldset>
+        <fieldset id="rangeVoice" hidden>
+          <legend class="eyebrow">Voice range</legend>
+          <div class="seg">
+            <label><input type="radio" name="vrange" id="vrange-low" value="low"><span>Lower voice · G2–D4</span></label>
+            <label><input type="radio" name="vrange" id="vrange-high" value="high"><span>Higher voice · G3–D5</span></label>
+          </div>
+          <p class="help">Lower is 98–294 Hz, higher is 196–587 Hz. Pick the one that sits comfortably in your voice.</p>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Show fractions of a</legend>
+          <div class="seg">
+            <label><input type="radio" name="unit" id="unit-tone" value="200"><span>Whole tone</span></label>
+            <label><input type="radio" name="unit" id="unit-semi" value="100"><span>Semitone</span></label>
+          </div>
+          <p class="help">A whole tone is two piano keys (200 cents). A semitone is one key (100 cents).</p>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Volume</legend>
+          <div class="vol">
+            <input type="range" id="volume" min="0" max="100" step="1" value="45" aria-label="Volume">
+            <button class="btn slim" type="button" id="testBtn">Test sound</button>
+          </div>
+          <p class="help">Test sound plays A4 (440 Hz). Headphones help, and stop the target bleeding into the microphone.</p>
+        </fieldset>
+      </div>
+      <div class="actions"><button class="btn primary" type="submit" id="startBtn">Start game</button></div>
+      <p class="error" id="audioError" hidden>This browser can't play generated sound. Try a recent version of Chrome, Safari, Firefox or Edge.</p>
+      <p class="small muted" id="bestLine" hidden></p>
+    </form>
+  </section>
+
+  <!-- LISTEN -->
+  <section class="panel" id="screen-listen" hidden aria-live="polite">
+    <div class="stage">
+      <div class="scope-box">
+        <canvas id="scope" aria-hidden="true"></canvas>
+        <div class="countdown" id="countdown">3</div>
+      </div>
+      <p class="phase-label" id="listenLabel">Get ready</p>
+      <div class="bar" aria-hidden="true"><span id="listenBar"></span></div>
+    </div>
+  </section>
+
+  <!-- TUNE (dial) -->
+  <section class="panel" id="screen-tune" hidden>
+    <div class="timer" id="timer">
+      <div class="timer-row"><span>Match the tone you heard</span><span class="timer-left" id="timerText">30 s left</span></div>
+      <div class="bar" aria-hidden="true"><span id="timerBar"></span></div>
+    </div>
+    <div class="face" id="face" tabindex="0" aria-label="Tuning dial. Use arrow keys to change the frequency.">
+      <div class="readout"><span id="freqNum">440.00</span><span class="unit">Hz</span></div>
+      <div class="note" id="noteName">A4 +0¢</div>
+      <div class="dialwrap"><canvas id="dial" aria-hidden="true"></canvas></div>
+      <p class="hint">Drag the dial sideways, or drag up and down anywhere on this panel. Arrow keys move 1 cent, Shift + arrow moves 10.</p>
+    </div>
+    <div class="coarse">
+      <input type="range" id="coarse" min="0" max="1000" step="1" value="500" aria-label="Coarse tuning">
+      <div class="coarse-ends"><span id="coarseLo">150 Hz</span><span>coarse</span><span id="coarseHi">900 Hz</span></div>
+    </div>
+    <div class="nudges">
+      <button class="btn" type="button" data-step="-10" aria-label="Down 10 cents">−10¢</button>
+      <button class="btn" type="button" data-step="-1" aria-label="Down 1 cent">−1¢</button>
+      <button class="btn" type="button" data-step="1" aria-label="Up 1 cent">+1¢</button>
+      <button class="btn" type="button" data-step="10" aria-label="Up 10 cents">+10¢</button>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" id="soundBtn">Mute your tone</button>
+      <button class="btn primary" type="button" id="submitBtn">Submit</button>
+    </div>
+  </section>
+
+  <!-- SING -->
+  <section class="panel" id="screen-sing" hidden>
+    <div class="timer" id="singTimer">
+      <div class="timer-row"><span>Sing the tone you heard</span><span class="timer-left" id="singTimerText">30 s left</span></div>
+      <div class="bar" aria-hidden="true"><span id="singTimerBar"></span></div>
+    </div>
+    <div class="face sing" id="singLive">
+      <div class="readout"><span id="singNum">—</span><span class="unit">Hz</span></div>
+      <div class="note" id="singNote">Listening…</div>
+      <div class="dialwrap"><canvas id="singDial" aria-hidden="true"></canvas></div>
+      <p class="sing-state" id="singState" aria-live="polite">Sing and hold the note</p>
+      <div class="meters">
+        <div class="meter-row"><span>Hold</span><div class="bar thick hold"><span id="holdBar"></span></div></div>
+        <div class="meter-row"><span>Mic level</span><div class="bar level"><span id="levelBar"></span></div></div>
+      </div>
+      <p class="hint">Hold one steady note, on a vowel like “ah”, and it locks in after about a second.</p>
+    </div>
+    <div class="upload" id="singUpload" hidden>
+      <p class="sing-state">Record yourself singing the note</p>
+      <p class="help">The microphone isn't available on this page. Open any voice-recorder app, sing the note you just heard and hold it for about two seconds, then upload the recording here.</p>
+      <div class="actions">
+        <input type="file" id="uploadInput" accept="audio/*" class="sr-only">
+        <label class="btn primary" for="uploadInput">Upload recording</label>
+        <button class="btn" type="button" id="hearAgain">Hear the target again</button>
+      </div>
+      <p class="small muted" id="uploadStatus" role="status"></p>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" id="skipBtn">Skip round</button>
+      <button class="btn primary" type="button" id="bestBtn" disabled>Use my best attempt</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="panel" id="screen-result" hidden>
+    <div class="res-head">
+      <span class="chip" id="rGrade" data-grade="good">Close</span>
+      <span class="small muted" id="rRound">Round 1 of 10</span>
+    </div>
+    <div class="pair">
+      <div><span class="eyebrow">Target</span><span class="val"><span id="rTarget">440.00</span> <small>Hz</small></span></div>
+      <div><span class="eyebrow" id="rYouLabel">You</span><span class="val"><span id="rYou">446.20</span> <small>Hz</small></span></div>
+    </div>
+    <div class="verdict" role="status">
+      <p class="v-hz" id="rHz">6.20 Hz too high</p>
+      <p class="v-tone" id="rTone">≈ 1/8 of a tone too high</p>
+      <p class="v-cents" id="rCents">+24.2 cents · 67 pts</p>
+    </div>
+    <p class="small muted" id="rOct" hidden></p>
+    <div class="gauge" id="gauge" aria-hidden="true">
+      <div class="g-ends"><span>Too low</span><span>Too high</span></div>
+      <div class="g-track" id="gaugeTrack"></div>
+      <p class="help" id="gaugeUnit">Scale in fractions of a tone.</p>
+    </div>
+    <p class="small muted" id="rNote" hidden></p>
+    <div class="actions">
+      <button class="btn" type="button" id="hearTarget">Hear target</button>
+      <button class="btn" type="button" id="hearYours">Hear yours</button>
+      <button class="btn" type="button" id="hearBoth">Hear both</button>
+      <button class="btn primary" type="button" id="nextBtn">Next round</button>
+    </div>
+  </section>
+
+  <!-- SUMMARY -->
+  <section class="panel" id="screen-summary" hidden>
+    <div class="sumhead">
+      <h2>Game over</h2>
+      <span class="chip" id="sPB" data-grade="best" hidden>New personal best</span>
+    </div>
+    <div class="tiles">
+      <div class="tile"><span class="eyebrow">Average miss</span><b id="sAvgHz">0.00 Hz</b><span class="sub" id="sAvgTone">≈ 1/8 of a tone</span></div>
+      <div class="tile"><span class="eyebrow">Score</span><b id="sScore">0</b><span class="sub" id="sScoreMax">out of 1000</span></div>
+      <div class="tile"><span class="eyebrow">Closest round</span><b id="sBest">Round 1</b><span class="sub" id="sBestSub">0.00 Hz</span></div>
+    </div>
+    <p class="refline" id="sRef"></p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Round</th><th>Target Hz</th><th id="thYours">Yours Hz</th><th>Off Hz</th><th id="thUnit">Off (tones)</th><th>Cents</th></tr></thead>
+        <tbody id="sRows"></tbody>
+      </table>
+    </div>
+    <p class="small muted" id="sFoot" hidden>↓8ve or ↑8ve means you sang the note an octave below or above, and that round was scored against the target in your octave.</p>
+    <div class="actions">
+      <button class="btn" type="button" id="settingsBtn">Change settings</button>
+      <button class="btn primary" type="button" id="againBtn">Play again</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+  const RANGES = { low: [80, 320], mid: [150, 900], wide: [60, 2000] };
+  const VRANGES = { low: [98, 294], high: [196, 587] };
+  const LISTEN = { noob: 5, easy: 2.5, hard: null };
+  const MONO = '"Azeret Mono", ui-monospace, Menlo, Consolas, monospace';
+  const FMIN = 60, FMAX = 1100;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  const store = {
+    get(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  /* ---------- maths ---------- */
+  const centsBetween = (a, b) => 1200 * Math.log2(a / b);
+  const round2 = (x) => Math.round(x * 100) / 100;
+  const logRandom = (lo, hi) => lo * Math.pow(hi / lo, Math.random());
+  const unitWord = (unit) => (unit === 200 ? 'tone' : 'semitone');
+
+  // "≈ 1/8 of a tone", "≈ 0.70 of a tone", "≈ 1.35 tones"
+  function fractionText(absCents, unit) {
+    const word = unitWord(unit);
+    if (absCents < 0.01) return 'spot on';
+    const f = absCents / unit;
+    if (f >= 0.6) {
+      const v = f.toFixed(2);
+      if (v === '1.00') return `≈ 1 ${word}`;
+      return f < 1 ? `≈ ${v} of a ${word}` : `≈ ${v} ${word}s`;
+    }
+    return `≈ 1/${Math.round(1 / f)} of a ${word}`;
+  }
+  function fractionShort(absCents, unit) {
+    if (absCents < 0.01) return '0';
+    const f = absCents / unit;
+    return f >= 0.6 ? f.toFixed(2) : `1/${Math.round(1 / f)}`;
+  }
+  function noteLabel(f) {
+    const m = 69 + 12 * Math.log2(f / 440);
+    const n = Math.round(m);
+    const off = Math.round((m - n) * 100);
+    const name = NAMES[((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1);
+    return `${name} ${off < 0 ? '−' : '+'}${Math.abs(off)}¢`;
+  }
+  const points = (absCents) => Math.round(100 * Math.exp(-absCents / 60));
+  function grade(absCents) {
+    if (absCents < 5) return ['Excellent', 'good'];
+    if (absCents < 15) return ['Very close', 'good'];
+    if (absCents < 40) return ['Close', 'fair'];
+    if (absCents < 100) return ['Off', 'far'];
+    return ['Way off', 'far'];
+  }
+  // target and you are both rounded to 0.01 Hz, exactly as displayed
+  function describe(target, you, unit) {
+    const diff = round2(you - target);
+    const c = centsBetween(you, target);
+    const abs = Math.abs(c);
+    const exact = Math.abs(diff) < 0.005;
+    const dir = diff > 0 ? 'too high' : 'too low';
+    return {
+      diff, c, abs, exact,
+      hzText: exact ? 'Exact match' : `${Math.abs(diff).toFixed(2)} Hz ${dir}`,
+      toneText: exact ? 'Spot on' : `${fractionText(abs, unit)} ${dir}`,
+      centsText: `${c < 0 ? '−' : '+'}${abs.toFixed(1)} cents`
+    };
+  }
+  // the same note in the octave nearest to what was sung
+  function foldOctave(target, you) {
+    const k = Math.round(centsBetween(you, target) / 1200);
+    return { k, ref: round2(target * Math.pow(2, k)) };
+  }
+
+  /* ---------- pitch detection (YIN) ---------- */
+  function rms(buf) { let s = 0; for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i]; return Math.sqrt(s / buf.length); }
+  function yin(buf, sr, thresh = 0.15) {
+    const W = Math.floor(buf.length / 2);
+    const tauMin = Math.max(2, Math.floor(sr / FMAX));
+    const tauMax = Math.min(W - 2, Math.ceil(sr / FMIN));
+    const c = new Float32Array(tauMax + 2);
+    c[0] = 1;
+    let run = 0;
+    for (let tau = 1; tau <= tauMax + 1; tau++) {
+      let s = 0;
+      for (let i = 0; i < W; i++) { const x = buf[i] - buf[i + tau]; s += x * x; }
+      run += s;
+      c[tau] = run > 0 ? (s * tau) / run : 1;
+    }
+    let tau = -1;
+    for (let t = tauMin; t <= tauMax; t++) {
+      if (c[t] < thresh) {
+        while (t + 1 <= tauMax && c[t + 1] < c[t]) t++;
+        tau = t;
+        break;
+      }
+    }
+    if (tau < 0) return null;
+    const x0 = c[tau - 1], x1 = c[tau], x2 = c[tau + 1];
+    const den = x0 + x2 - 2 * x1;
+    const shift = den !== 0 ? Math.max(-1, Math.min(1, (x0 - x2) / (2 * den))) : 0;
+    return { freq: sr / (tau + shift), conf: 1 - x1 };
+  }
+  function medianOf(arr) {
+    const s = arr.slice().sort((a, b) => a - b);
+    const n = s.length;
+    return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+  }
+  // Finds a held note: a stretch where nearly all frames sit within ±tol cents of their median
+  function makeTracker(opts = {}) {
+    const hold = opts.hold ?? 1.2, win = opts.win ?? 0.4, tol = opts.tol ?? 50;
+    let frames = [], run = null, bestRun = null;
+    const dur = (r) => (r ? r.end - r.start : 0);
+    const close = () => { if (run && dur(run) > dur(bestRun)) bestRun = run; run = null; };
+    return {
+      push(t, f) {
+        frames.push({ t, f });
+        while (frames.length && frames[0].t < t - win) frames.shift();
+        const span = frames.length > 1 ? t - frames[0].t : 0;
+        const voiced = [];
+        for (const fr of frames) if (fr.f) voiced.push(fr.f);
+        let steady = false, m = 0;
+        if (span >= win * 0.75 && voiced.length >= 3 && voiced.length >= frames.length * 0.7) {
+          m = medianOf(voiced);
+          let within = 0;
+          for (const v of voiced) if (Math.abs(1200 * Math.log2(v / m)) <= tol) within++;
+          steady = within >= voiced.length * 0.8;
+        }
+        if (steady) {
+          if (!run) run = { start: t, end: t, vals: [] };
+          run.end = t;
+          if (f && Math.abs(1200 * Math.log2(f / m)) <= tol) run.vals.push(f);
+        } else close();
+        return { steady, progress: Math.min(1, dur(run) / hold), done: dur(run) >= hold && run.vals.length >= 3 };
+      },
+      current() { return run && run.vals.length ? medianOf(run.vals) : null; },
+      best(minDur = 0.35) {
+        const cand = dur(run) > dur(bestRun) ? run : bestRun;
+        if (!cand || dur(cand) < minDur || cand.vals.length < 3) return null;
+        return medianOf(cand.vals);
+      },
+      reset() { frames = []; run = null; bestRun = null; }
+    };
+  }
+  function analyzeRecording(audio) {
+    const data = audio.getChannelData(0);
+    let sr = audio.sampleRate;
+    const maxLen = Math.min(data.length, Math.round(sr * 30));
+    let x;
+    if (sr >= 32000) {            // halve the rate to keep analysis quick
+      x = new Float32Array(Math.floor(maxLen / 2));
+      for (let i = 0; i < x.length; i++) x[i] = 0.5 * (data[2 * i] + data[2 * i + 1]);
+      sr = sr / 2;
+    } else x = data.subarray(0, maxLen);
+    const N = sr > 30000 ? 2048 : 1024;
+    const hop = Math.max(1, Math.round(sr * 0.02));
+    let peak = 0;
+    for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; }
+    const gate = Math.max(0.002, peak * 0.05);
+    const tr = makeTracker();
+    for (let i = 0; i + N <= x.length; i += hop) {
+      const seg = x.subarray(i, i + N);
+      let f = null;
+      if (rms(seg) > gate) {
+        const p = yin(seg, sr);
+        if (p && p.conf > 0.8 && p.freq >= FMIN && p.freq <= FMAX) f = p.freq;
+      }
+      tr.push(i / sr, f);
+    }
+    return tr.best(0.5);
+  }
+
+  /* ---------- audio out ---------- */
+  let actx = null, master = null, tuner = null;
+  const shots = new Set();
+  const volGain = () => { const v = Number($('volume').value) / 100; return 0.5 * v * v; };
+
+  function ensureAudio() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      try { actx = new AC(); } catch (e) { return false; }
+      master = actx.createGain();
+      master.gain.value = volGain();
+      master.connect(actx.destination);
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return true;
+  }
+  function playTone(freq, dur, delay = 0) {
+    if (!ensureAudio()) return;
+    const t0 = actx.currentTime + 0.03 + delay;
+    const o = actx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(1, t0 + 0.03);
+    g.gain.setValueAtTime(1, t0 + Math.max(0.04, dur - 0.06));
+    g.gain.linearRampToValueAtTime(0, t0 + dur);
+    o.connect(g); g.connect(master);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+    const shot = { o, g };
+    shots.add(shot);
+    o.onended = () => { shots.delete(shot); try { g.disconnect(); } catch (e) {} };
+  }
+  function stopShots() {
+    if (!actx) return;
+    const now = actx.currentTime;
+    shots.forEach(({ o, g }) => {
+      try { g.gain.cancelScheduledValues(now); g.gain.setTargetAtTime(0, now, 0.01); o.stop(now + 0.08); } catch (e) {}
+    });
+    shots.clear();
+  }
+  function startTuner(freq) {
+    if (!ensureAudio()) return;
+    stopTuner();
+    const o = actx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    const g = actx.createGain();
+    g.gain.value = 0;
+    o.connect(g); g.connect(master);
+    o.start();
+    g.gain.setTargetAtTime(game.sound ? 1 : 0, actx.currentTime, 0.03);
+    tuner = { o, g };
+  }
+  function setTunerFreq(f) { if (tuner) tuner.o.frequency.setTargetAtTime(f, actx.currentTime, 0.012); }
+  function setTunerOn(on) { if (tuner) tuner.g.gain.setTargetAtTime(on ? 1 : 0, actx.currentTime, 0.03); }
+  function stopTuner() {
+    if (!tuner) return;
+    const { o, g } = tuner;
+    tuner = null;
+    try {
+      const now = actx.currentTime;
+      g.gain.cancelScheduledValues(now);
+      g.gain.setTargetAtTime(0, now, 0.02);
+      o.stop(now + 0.15);
+      o.onended = () => { try { g.disconnect(); } catch (e) {} };
+    } catch (e) {}
+  }
+
+  /* ---------- microphone ---------- */
+  let mic = null;
+  function openMic() {
+    if (mic) return Promise.resolve(true);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      let settled = false;
+      const timer = setTimeout(() => { settled = true; resolve(false); }, 20000);
+      let req;
+      try {
+        req = navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      } catch (e) { clearTimeout(timer); resolve(false); return; }
+      req.then((stream) => {
+        if (settled) { stream.getTracks().forEach((t) => t.stop()); return; }
+        clearTimeout(timer); settled = true;
+        try {
+          const src = actx.createMediaStreamSource(stream);
+          const an = actx.createAnalyser();
+          an.fftSize = actx.sampleRate > 50000 ? 4096 : 2048;
+          const sink = actx.createGain();
+          sink.gain.value = 0;
+          src.connect(an); an.connect(sink); sink.connect(actx.destination);
+          mic = { stream, src, an, sink, buf: new Float32Array(an.fftSize) };
+          resolve(true);
+        } catch (e) { stream.getTracks().forEach((t) => t.stop()); resolve(false); }
+      }, () => { if (!settled) { clearTimeout(timer); settled = true; resolve(false); } });
+    });
+  }
+  function closeMic() {
+    if (!mic) return;
+    try { mic.stream.getTracks().forEach((t) => t.stop()); mic.src.disconnect(); mic.an.disconnect(); mic.sink.disconnect(); } catch (e) {}
+    mic = null;
+  }
+
+  /* ---------- theme tokens for canvas ---------- */
+  const tok = {};
+  function readTokens() {
+    const cs = getComputedStyle(document.documentElement);
+    ['ink', 'muted', 'rule', 'panel', 'dial', 'dial-deep', 'dial-ink', 'needle'].forEach((k) => {
+      tok[k.replace('-', '_')] = cs.getPropertyValue('--' + k).trim();
+    });
+  }
+  function fitCanvas(cv) {
+    const r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const W = Math.round(r.width * dpr), H = Math.round(r.height * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w: r.width, h: r.height };
+  }
+
+  // Backlit dial: 1 px = 1 cent, semitone ticks labelled with note name and Hz
+  function drawDial(cv, f, lo, hi, dim) {
+    const c = fitCanvas(cv);
+    if (!c) return;
+    const { ctx, w, h } = c;
+    const bg = ctx.createLinearGradient(0, 0, w, 0);
+    bg.addColorStop(0, tok.dial_deep); bg.addColorStop(0.5, tok.dial); bg.addColorStop(1, tok.dial_deep);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+    const C = centsBetween(f, 440);
+    const x0 = w / 2 - C;
+    const xl = x0 + centsBetween(lo, 440), xr = x0 + centsBetween(hi, 440);
+    ctx.fillStyle = tok.dial_ink; ctx.globalAlpha = 0.2;
+    if (xl > 0) ctx.fillRect(0, 0, Math.min(xl, w), h);
+    if (xr < w) ctx.fillRect(Math.max(xr, 0), 0, w - Math.max(xr, 0), h);
+
+    ctx.strokeStyle = tok.dial_ink; ctx.fillStyle = tok.dial_ink;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    const start = Math.ceil((C - w / 2) / 10) * 10, end = C + w / 2;
+    for (let k = start; k <= end; k += 10) {
+      const x = Math.round(x0 + k) + 0.5;
+      const mod = ((k % 100) + 100) % 100;
+      const len = mod === 0 ? h * 0.36 : mod === 50 ? h * 0.24 : h * 0.13;
+      ctx.lineWidth = mod === 0 ? 1.5 : 1;
+      ctx.globalAlpha = mod === 0 ? 0.95 : 0.55;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, len); ctx.stroke();
+      if (mod === 0) {
+        const n = 69 + k / 100;
+        ctx.globalAlpha = 0.95;
+        ctx.font = `600 13px ${MONO}`;
+        ctx.fillText(NAMES[((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1), x, h * 0.62);
+        ctx.globalAlpha = 0.72;
+        ctx.font = `400 10.5px ${MONO}`;
+        const hz = 440 * Math.pow(2, k / 1200);
+        ctx.fillText(hz < 1000 ? hz.toFixed(1) : hz.toFixed(0), x, h * 0.86);
+      }
+    }
+    ctx.globalAlpha = 1;
+    const gl = ctx.createLinearGradient(0, 0, 0, h);
+    gl.addColorStop(0, 'rgba(255,255,255,0.26)');
+    gl.addColorStop(0.45, 'rgba(255,255,255,0)');
+    gl.addColorStop(1, 'rgba(0,0,0,0.12)');
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, w, h);
+
+    if (dim) {
+      ctx.globalAlpha = 0.5; ctx.fillStyle = tok.panel; ctx.fillRect(0, 0, w, h); ctx.globalAlpha = 1;
+      return;
+    }
+    ctx.fillStyle = tok.needle;
+    ctx.fillRect(Math.round(w / 2) - 1, 0, 2, h);
+    ctx.beginPath(); ctx.moveTo(w / 2 - 6, 0); ctx.lineTo(w / 2 + 6, 0); ctx.lineTo(w / 2, 8); ctx.closePath(); ctx.fill();
+  }
+
+  /* ---------- state ---------- */
+  const settings = { answer: 'dial', listen: 'easy', tunetime: '30', rounds: '10', range: 'mid', vrange: 'low', unit: '200', octfold: true, volume: 45 };
+  const KEYS = ['answer', 'listen', 'tunetime', 'rounds', 'range', 'vrange', 'unit'];
+  let game = null;
+  let flow = 0;           // bumps to cancel stale async steps
+  let phase = 'setup';
+  const tracker = makeTracker();
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const bestKey = (mode) => (mode === 'sing' ? 'pitchdial.best.sing' : 'pitchdial.best');
+
+  function show(name) {
+    phase = name;
+    ['setup', 'listen', 'tune', 'sing', 'result', 'summary'].forEach((s) => { $('screen-' + s).hidden = s !== name; });
+    $('status').hidden = name === 'setup';
+  }
+  function readForm() {
+    const fd = new FormData($('setupForm'));
+    KEYS.forEach((k) => { const v = fd.get(k); if (v != null) settings[k] = String(v); });
+    settings.octfold = $('octFold').checked;
+    settings.volume = Number($('volume').value);
+  }
+  function applyForm() {
+    KEYS.forEach((k) => {
+      const el = document.querySelector(`input[name="${k}"][value="${settings[k]}"]`);
+      if (el) el.checked = true;
+    });
+    $('octFold').checked = settings.octfold !== false;
+    $('volume').value = String(settings.volume);
+  }
+  function formUnit() { return Number(settings.unit) === 100 ? 100 : 200; }
+  function updateModeUI() {
+    const sing = settings.answer === 'sing';
+    $('rangeDial').hidden = sing;
+    $('rangeVoice').hidden = !sing;
+    $('singOpts').hidden = !sing;
+  }
+  function updateExample() {
+    const d = describe(440, 446.2, formUnit());
+    $('exHz').textContent = d.hzText;
+    $('exTone').textContent = d.toneText;
+    $('exCents').textContent = d.centsText;
+  }
+  function updateBestLine() {
+    const b = store.get(bestKey(settings.answer));
+    const el = $('bestLine');
+    if (b && typeof b.avgCents === 'number') {
+      const what = settings.answer === 'sing' ? 'singing' : 'dial';
+      el.textContent = `Your best ${what} average so far: ${b.avgCents.toFixed(1)} cents (${fractionText(b.avgCents, formUnit())}).`;
+      el.hidden = false;
+    } else el.hidden = true;
+  }
+  function updateStatus() {
+    if (!game) return;
+    $('roundLabel').textContent = `Round ${game.round} of ${game.rounds}`;
+    $('scoreLabel').textContent = `${game.score} pts`;
+  }
+  function setTimer(boxId, barId, textId, total, end) {
+    const left = Math.max(0, end - performance.now());
+    $(barId).style.transform = `scaleX(${left / (total * 1000)})`;
+    $(textId).textContent = `${Math.ceil(left / 1000)} s left`;
+    $(boxId).classList.toggle('low', left < 5000);
+    return left;
+  }
+
+  /* ---------- game flow ---------- */
+  async function startGame() {
+    readForm();
+    store.set('pitchdial.settings', settings);
+    if (!ensureAudio()) { $('audioError').hidden = false; return; }
+    const sing = settings.answer === 'sing';
+    const [lo, hi] = sing ? (VRANGES[settings.vrange] || VRANGES.low) : (RANGES[settings.range] || RANGES.mid);
+    let micMode = null;
+    if (sing) {
+      const btns = [$('startBtn'), $('againBtn')];
+      btns.forEach((b) => { b.disabled = true; });
+      $('startBtn').textContent = 'Waiting for the microphone…';
+      const ok = await openMic();
+      btns.forEach((b) => { b.disabled = false; });
+      $('startBtn').textContent = 'Start game';
+      micMode = ok ? 'live' : 'upload';
+    } else closeMic();
+    game = {
+      mode: sing ? 'sing' : 'dial',
+      micMode,
+      fold: sing && settings.octfold !== false,
+      lo, hi,
+      unit: formUnit(),
+      rounds: Number(settings.rounds) || 10,
+      tuneTime: Number(settings.tunetime) || 0,
+      listen: settings.listen,
+      round: 0, score: 0, results: [],
+      sound: true, target: 0, freq: 0, lastVoiced: 0
+    };
+    $('coarseLo').textContent = `${lo} Hz`;
+    $('coarseHi').textContent = `${hi} Hz`;
+    nextRound();
+  }
+
+  async function nextRound() {
+    const id = ++flow;
+    stopShots(); stopTuner();
+    game.round += 1;
+    updateStatus();
+    game.target = round2(logRandom(game.lo, game.hi));
+    const dur = LISTEN[game.listen] ?? Math.round((0.6 + Math.random() * 1.9) * 10) / 10;
+
+    show('listen');
+    const cd = $('countdown'), label = $('listenLabel'), bar = $('listenBar');
+    bar.style.transform = 'scaleX(0)';
+    cd.hidden = false;
+    drawScope(0, 0);
+    label.textContent = 'Get ready';
+    for (const n of [3, 2, 1]) {
+      cd.textContent = String(n);
+      await wait(650);
+      if (id !== flow) return;
+    }
+    cd.hidden = true;
+    label.textContent = game.listen === 'hard' ? 'Listen' : `Listen · ${dur} s`;
+    playTone(game.target, dur);
+    const t0 = performance.now();
+    await new Promise((res) => {
+      const step = (t) => {
+        if (id !== flow) return res();
+        const p = Math.min(1, Math.max(0, (t - t0) / (dur * 1000)));
+        bar.style.transform = `scaleX(${p})`;
+        drawScope(t, p < 1 ? 1 : 0);
+        if (p < 1) requestAnimationFrame(step); else res();
+      };
+      requestAnimationFrame(step);
+    });
+    if (id !== flow) return;
+    label.textContent = game.mode === 'sing' ? 'Now sing it' : 'Now match it';
+    await wait(game.mode === 'sing' ? 250 : 450);
+    if (id !== flow) return;
+    if (game.mode === 'sing') startSing(id); else startTune(id);
+  }
+
+  function drawScope(t, amp) {
+    const c = fitCanvas($('scope'));
+    if (!c) return;
+    const { ctx, w, h } = c;
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = tok.rule; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, h / 2 + 0.5); ctx.lineTo(w, h / 2 + 0.5); ctx.stroke();
+    if (!amp) return;
+    ctx.strokeStyle = tok.ink; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    const ph = reduceMotion.matches ? 0 : t / 160;
+    for (let x = 0; x <= w; x += 2) {
+      const env = Math.sin(Math.PI * x / w);
+      const y = h / 2 - Math.sin((x / w) * Math.PI * 2 * 4 - ph) * (h * 0.36) * env * amp;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  /* dial mode */
+  function startTune(id) {
+    let f, tries = 0;
+    do { f = logRandom(game.lo, game.hi); tries++; }
+    while (Math.abs(centsBetween(f, game.target)) < 250 && tries < 40);
+    game.freq = f;
+    show('tune');
+    setSoundButton();
+    startTuner(f);
+    renderTune(false);
+    $('face').focus({ preventScroll: true });
+
+    const total = game.tuneTime;
+    $('timer').classList.remove('low');
+    if (!total) { $('timerBar').style.transform = 'scaleX(1)'; $('timerText').textContent = 'No time limit'; return; }
+    const end = performance.now() + total * 1000;
+    const tick = () => {
+      if (id !== flow || phase !== 'tune') return;
+      if (setTimer('timer', 'timerBar', 'timerText', total, end) <= 0) { submit(true); return; }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  function setFreq(f, fromSlider) {
+    if (!game) return;
+    game.freq = Math.min(game.hi, Math.max(game.lo, f));
+    setTunerFreq(game.freq);
+    renderTune(fromSlider);
+  }
+  const nudge = (cents) => { if (game && phase === 'tune') setFreq(game.freq * Math.pow(2, cents / 1200), false); };
+  function renderTune(fromSlider) {
+    const f = game.freq;
+    $('freqNum').textContent = f.toFixed(2);
+    $('noteName').textContent = noteLabel(f);
+    if (!fromSlider) {
+      const pos = Math.log(f / game.lo) / Math.log(game.hi / game.lo) * 1000;
+      $('coarse').value = String(Math.round(pos));
+    }
+    if (phase === 'tune') drawDial($('dial'), f, game.lo, game.hi, false);
+  }
+  function setSoundButton() { $('soundBtn').textContent = game && game.sound ? 'Mute your tone' : 'Unmute your tone'; }
+  function submit(auto) {
+    if (phase !== 'tune') return;
+    flow++;
+    stopTuner(); endDrag();
+    recordResult(round2(game.freq), auto);
+  }
+
+  /* singing mode */
+  let singStateText = '';
+  function setSingState(text, progress) {
+    if (text !== singStateText) { $('singState').textContent = text; singStateText = text; }
+    $('holdBar').style.transform = `scaleX(${progress})`;
+  }
+  function renderSing(now) {
+    const live = game.freq && now - game.lastVoiced < 400;
+    $('singNum').textContent = live ? game.freq.toFixed(2) : '—';
+    $('singNote').textContent = live ? noteLabel(game.freq) : 'Listening…';
+    drawDial($('singDial'), game.freq || Math.sqrt(game.lo * game.hi), game.lo, game.hi, !live);
+  }
+  function startSing(id) {
+    show('sing');
+    game.freq = 0; game.lastVoiced = 0;
+    tracker.reset();
+    singStateText = '';
+    const live = game.micMode === 'live';
+    $('singLive').hidden = !live;
+    $('singTimer').hidden = !live;
+    $('singUpload').hidden = live;
+    $('bestBtn').hidden = !live;
+    $('bestBtn').disabled = true;
+    if (!live) {
+      $('uploadStatus').textContent = '';
+      $('uploadInput').value = '';
+      return;
+    }
+    setSingState('Sing and hold the note', 0);
+    renderSing(performance.now());
+    const total = game.tuneTime;
+    const end = performance.now() + total * 1000;
+    $('singTimer').classList.remove('low');
+    if (!total) { $('singTimerBar').style.transform = 'scaleX(1)'; $('singTimerText').textContent = 'No time limit'; }
+    let lastAnalysis = 0;
+    const loop = (now) => {
+      if (id !== flow || phase !== 'sing' || !mic) return;
+      if (now - lastAnalysis >= 30) {
+        lastAnalysis = now;
+        mic.an.getFloatTimeDomainData(mic.buf);
+        const r = rms(mic.buf);
+        const lvl = r > 0 ? Math.min(1, Math.max(0, (20 * Math.log10(r) + 60) / 54)) : 0;
+        $('levelBar').style.transform = `scaleX(${lvl})`;
+        let f = null;
+        if (r > 0.006) {
+          const p = yin(mic.buf, actx.sampleRate);
+          if (p && p.conf > 0.8 && p.freq >= FMIN && p.freq <= FMAX) f = p.freq;
+        }
+        const st = tracker.push(now / 1000, f);
+        if (f) {
+          game.freq = game.freq && now - game.lastVoiced < 400 ? game.freq * Math.pow(f / game.freq, 0.35) : f;
+          game.lastVoiced = now;
+        }
+        renderSing(now);
+        if (st.done) { setSingState('Got it', 1); finishSing(tracker.current(), false); return; }
+        if (st.steady) setSingState('Keep holding…', st.progress);
+        else setSingState(f ? 'Hold it steady' : 'Sing and hold the note', 0);
+        $('bestBtn').disabled = !tracker.best();
+      }
+      if (total && setTimer('singTimer', 'singTimerBar', 'singTimerText', total, end) <= 0) {
+        finishSing(tracker.best(), true);
+        return;
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+  function finishSing(f, auto) {
+    if (phase !== 'sing') return;
+    flow++;
+    if (!f) recordMiss(auto, false); else recordResult(round2(f), auto);
+  }
+
+  /* results */
+  function recordResult(you, auto) {
+    let ref = game.target, oct = 0;
+    if (game.fold) { const fo = foldOctave(game.target, you); ref = fo.ref; oct = fo.k; }
+    const d = describe(ref, you, game.unit);
+    const pts = points(d.abs);
+    game.score += pts;
+    const res = Object.assign({ round: game.round, target: game.target, ref, oct, you, pts, miss: false }, d);
+    game.results.push(res);
+    updateStatus();
+    showResult(res, auto);
+  }
+  function recordMiss(auto, skipped) {
+    const res = { round: game.round, target: game.target, miss: true, skipped, pts: 0 };
+    game.results.push(res);
+    updateStatus();
+    showResult(res, auto);
+  }
+  function showResult(r, auto) {
+    show('result');
+    const sing = game.mode === 'sing';
+    $('rRound').textContent = `Round ${r.round} of ${game.rounds}`;
+    $('rTarget').textContent = r.target.toFixed(2);
+    $('rYouLabel').textContent = sing ? 'You sang' : 'You';
+    $('gauge').hidden = r.miss;
+    $('hearYours').disabled = r.miss;
+    $('hearBoth').disabled = r.miss;
+    $('hearYours').textContent = sing ? 'Hear your note' : 'Hear yours';
+    if (r.miss) {
+      $('rYou').textContent = '—';
+      $('rGrade').textContent = r.skipped ? 'Skipped' : 'No note';
+      $('rGrade').dataset.grade = 'far';
+      $('rHz').textContent = r.skipped ? 'Round skipped' : 'No steady note heard';
+      $('rTone').textContent = r.skipped ? '' : 'Sing a little louder and hold one note for about two seconds.';
+      $('rCents').textContent = '0 pts';
+      $('rOct').hidden = true;
+    } else {
+      $('rYou').textContent = r.you.toFixed(2);
+      $('rHz').textContent = r.hzText;
+      $('rTone').textContent = r.toneText;
+      $('rCents').textContent = `${r.centsText} · ${r.pts} pts`;
+      const [label, cls] = grade(r.abs);
+      $('rGrade').textContent = label;
+      $('rGrade').dataset.grade = cls;
+      if (r.oct) {
+        const n = Math.abs(r.oct);
+        $('rOct').textContent = `You sang ${n === 1 ? 'an octave' : n + ' octaves'} ${r.oct < 0 ? 'below' : 'above'} the target, so this round is scored against ${r.ref.toFixed(2)} Hz.`;
+        $('rOct').hidden = false;
+      } else $('rOct').hidden = true;
+      drawGauge(r.c, cls);
+    }
+    if (auto) {
+      $('rNote').textContent = !sing ? 'Time ran out, so your last dial setting was submitted.'
+        : r.miss ? 'Time ran out before a steady note was heard.' : 'Time ran out, so your steadiest attempt was used.';
+      $('rNote').hidden = false;
+    } else $('rNote').hidden = true;
+    $('nextBtn').textContent = game.round >= game.rounds ? 'See results' : 'Next round';
+    $('nextBtn').focus({ preventScroll: true });
+  }
+
+  /* gauge: symmetric log scale so 1/16, 1/8, 1/4, 1/2, 1, 2 of the unit sit roughly evenly */
+  const MARKS = [1 / 16, 1 / 8, 1 / 4, 1 / 2, 1, 2];
+  function gaugePos(c, unit) {
+    const k = unit / 16, max = unit * 2;
+    const a = Math.min(Math.abs(c), max);
+    return Math.sign(c) * Math.log2(1 + a / k) / Math.log2(1 + max / k);
+  }
+  function drawGauge(c, cls) {
+    const track = $('gaugeTrack');
+    const unit = game.unit;
+    track.textContent = '';
+    const narrow = track.clientWidth < 420;
+    const add = (cl, left, text) => {
+      const el = document.createElement('span');
+      el.className = cl;
+      el.style.left = left;
+      if (text) el.textContent = text;
+      track.appendChild(el);
+      return el;
+    };
+    MARKS.forEach((m) => [-1, 1].forEach((s) => {
+      const left = `${50 + gaugePos(s * m * unit, unit) * 50}%`;
+      add('g-tick', left);
+      if (!(narrow && m < 1 / 4)) add('g-label', left, m >= 1 ? String(m) : `1/${Math.round(1 / m)}`);
+    }));
+    add('g-target', '50%');
+    add('g-target-label', '50%', 'target');
+    const p = gaugePos(c, unit);
+    const left = `${50 + p * 50}%`;
+    const dot = add('g-you', left);
+    dot.dataset.grade = cls;
+    const lab = add('g-you-label', left, Math.abs(c) > unit * 2 ? 'you (off scale)' : 'you');
+    lab.dataset.grade = cls;
+    if (p > 0.82) lab.classList.add('edge-r');
+    if (p < -0.82) lab.classList.add('edge-l');
+    $('gaugeUnit').textContent = `Scale marks are fractions of a ${unitWord(unit)}, from 1/16 out to 2 ${unitWord(unit)}s either side.`;
+  }
+
+  function showSummary() {
+    flow++;
+    stopTuner(); stopShots(); closeMic();
+    show('summary');
+    const rs = game.results, unit = game.unit, sing = game.mode === 'sing';
+    const ok = rs.filter((r) => !r.miss);
+    const n = ok.length, misses = rs.length - n;
+    if (n) {
+      const avgC = ok.reduce((s, r) => s + r.abs, 0) / n;
+      const avgHz = ok.reduce((s, r) => s + Math.abs(r.diff), 0) / n;
+      const best = ok.reduce((b, r) => (r.abs < b.abs ? r : b), ok[0]);
+      $('sAvgHz').textContent = `${avgHz.toFixed(2)} Hz`;
+      $('sAvgTone').textContent = `${fractionText(avgC, unit)} · ${avgC.toFixed(1)} cents` + (misses ? ` · ${misses} round${misses > 1 ? 's' : ''} with no note` : '');
+      $('sBest').textContent = `Round ${best.round}`;
+      $('sBestSub').textContent = `${Math.abs(best.diff).toFixed(2)} Hz · ${fractionText(best.abs, unit)}`;
+      const prev = store.get(bestKey(game.mode));
+      const isBest = n >= 5 && (!prev || typeof prev.avgCents !== 'number' || avgC < prev.avgCents);
+      if (isBest) store.set(bestKey(game.mode), { avgCents: avgC, rounds: n });
+      $('sPB').hidden = !isBest;
+    } else {
+      $('sAvgHz').textContent = '—';
+      $('sAvgTone').textContent = 'No rounds were scored';
+      $('sBest').textContent = '—';
+      $('sBestSub').textContent = '';
+      $('sPB').hidden = true;
+    }
+    $('sScore').textContent = String(game.score);
+    $('sScoreMax').textContent = `out of ${rs.length * 100}`;
+    $('sRef').textContent = sing
+      ? `For reference: in a lab study, non-musicians singing a note they had just heard missed by 38 cents on average (${fractionText(38, unit)}).`
+      : `For reference: in a lab study, non-musicians matching tones with a slider missed by 13 cents on average (${fractionText(13, unit)}), and they could replay the target.`;
+    $('thUnit').textContent = `Off (${unitWord(unit)}s)`;
+    $('thYours').textContent = sing ? 'Sang Hz' : 'Yours Hz';
+    const body = $('sRows');
+    body.textContent = '';
+    let anyOct = false;
+    rs.forEach((r) => {
+      const tr = document.createElement('tr');
+      let cells;
+      if (r.miss) cells = [String(r.round), r.target.toFixed(2), '—', '—', r.skipped ? 'skipped' : 'no note', '—'];
+      else {
+        const dir = r.exact ? '' : (r.diff > 0 ? ' high' : ' low');
+        let yours = r.you.toFixed(2);
+        if (r.oct) { anyOct = true; yours += ` ${r.oct < 0 ? '↓' : '↑'}${Math.abs(r.oct) > 1 ? Math.abs(r.oct) : ''}8ve`; }
+        cells = [
+          String(r.round), r.target.toFixed(2), yours,
+          `${r.diff > 0 ? '+' : r.diff < 0 ? '−' : ''}${Math.abs(r.diff).toFixed(2)}`,
+          `${fractionShort(r.abs, unit)}${dir}`,
+          r.centsText.replace(' cents', '')
+        ];
+      }
+      cells.forEach((t) => { const td = document.createElement('td'); td.textContent = t; tr.appendChild(td); });
+      body.appendChild(tr);
+    });
+    $('sFoot').hidden = !anyOct;
+    updateBestLine();
+    $('againBtn').focus({ preventScroll: true });
+  }
+
+  /* ---------- input: dial ---------- */
+  const face = $('face');
+  let drag = null;
+  face.addEventListener('pointerdown', (e) => {
+    if (phase !== 'tune' || e.button > 0) return;
+    drag = { x: e.clientX, y: e.clientY, onDial: e.target === $('dial') };
+    try { face.setPointerCapture(e.pointerId); } catch (_) {}
+    face.classList.add('dragging');
+  });
+  face.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.x = e.clientX; drag.y = e.clientY;
+    const d = drag.onDial ? -dx : -dy;
+    if (d) nudge(d * (e.shiftKey ? 0.2 : 1));
+  });
+  function endDrag() { drag = null; face.classList.remove('dragging'); }
+  face.addEventListener('pointerup', endDrag);
+  face.addEventListener('pointercancel', endDrag);
+  face.addEventListener('wheel', (e) => {
+    if (phase !== 'tune') return;
+    e.preventDefault();
+    const mult = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1;
+    const d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * mult;
+    nudge(-d * (e.shiftKey ? 0.01 : 0.05));
+  }, { passive: false });
+
+  document.addEventListener('keydown', (e) => {
+    if (phase !== 'tune') return;
+    const step = e.shiftKey ? 10 : 1;
+    const map = { ArrowUp: step, ArrowRight: step, ArrowDown: -step, ArrowLeft: -step, PageUp: 100, PageDown: -100 };
+    if (e.key in map) { e.preventDefault(); nudge(map[e.key]); return; }
+    if (e.key === 'Enter' && !(e.target instanceof Element && e.target.closest('button'))) { e.preventDefault(); submit(false); }
+  });
+
+  $('coarse').addEventListener('input', (e) => {
+    if (!game || phase !== 'tune') return;
+    const p = Number(e.target.value) / 1000;
+    setFreq(game.lo * Math.pow(game.hi / game.lo, p), true);
+  });
+
+  // nudge buttons: tap once, or hold to repeat
+  document.querySelectorAll('.nudges .btn').forEach((b) => {
+    const step = Number(b.dataset.step);
+    let t1 = 0, t2 = 0;
+    const stop = () => { clearTimeout(t1); clearInterval(t2); };
+    b.addEventListener('pointerdown', (e) => {
+      if (e.button > 0) return;
+      nudge(step);
+      stop();
+      t1 = setTimeout(() => { t2 = setInterval(() => nudge(step), 60); }, 380);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => b.addEventListener(ev, stop));
+    b.addEventListener('click', (e) => { if (e.detail === 0) nudge(step); }); // keyboard activation
+  });
+
+  $('soundBtn').addEventListener('click', () => {
+    if (!game) return;
+    game.sound = !game.sound;
+    setTunerOn(game.sound);
+    setSoundButton();
+  });
+  $('submitBtn').addEventListener('click', () => submit(false));
+
+  /* ---------- input: singing ---------- */
+  $('bestBtn').addEventListener('click', () => { if (phase === 'sing') finishSing(tracker.best(), false); });
+  $('skipBtn').addEventListener('click', () => { if (phase === 'sing') { flow++; recordMiss(false, true); } });
+  $('hearAgain').addEventListener('click', () => { if (game && phase === 'sing') { stopShots(); playTone(game.target, 1.5); } });
+  $('uploadInput').addEventListener('change', async (e) => {
+    const input = e.target;
+    const file = input.files && input.files[0];
+    if (!file || phase !== 'sing') return;
+    const id = flow;
+    const status = $('uploadStatus');
+    status.textContent = 'Finding the note in your recording…';
+    try {
+      const ab = await file.arrayBuffer();
+      const audio = await new Promise((res, rej) => {
+        const p = actx.decodeAudioData(ab, res, rej);
+        if (p && typeof p.then === 'function') p.then(res, rej);
+      });
+      if (id !== flow || phase !== 'sing') return;
+      const f = analyzeRecording(audio);
+      if (!f) {
+        status.textContent = "Couldn't find a steady note in that recording. Hold one note for about two seconds and upload it again.";
+        input.value = '';
+        return;
+      }
+      finishSing(f, false);
+    } catch (err) {
+      status.textContent = "That file couldn't be read. Try a WAV, MP3 or M4A recording.";
+      input.value = '';
+    }
+  });
+
+  /* ---------- input: result, summary, setup ---------- */
+  $('nextBtn').addEventListener('click', () => {
+    if (!game) return;
+    if (game.round >= game.rounds) showSummary(); else nextRound();
+  });
+  const last = () => game && game.results[game.results.length - 1];
+  $('hearTarget').addEventListener('click', () => { const r = last(); if (!r) return; stopShots(); playTone(r.target, 1); });
+  $('hearYours').addEventListener('click', () => { const r = last(); if (!r || r.miss) return; stopShots(); playTone(r.you, 1); });
+  $('hearBoth').addEventListener('click', () => { const r = last(); if (!r || r.miss) return; stopShots(); playTone(r.target, 0.9); playTone(r.you, 0.9, 1.15); });
+
+  $('endBtn').addEventListener('click', () => {
+    flow++;
+    stopTuner(); stopShots(); endDrag();
+    if (game && game.results.length) showSummary(); else { closeMic(); show('setup'); }
+  });
+  $('againBtn').addEventListener('click', () => startGame());
+  $('settingsBtn').addEventListener('click', () => { flow++; stopShots(); closeMic(); show('setup'); updateBestLine(); });
+
+  $('setupForm').addEventListener('submit', (e) => { e.preventDefault(); startGame(); });
+  $('setupForm').addEventListener('change', () => {
+    readForm();
+    store.set('pitchdial.settings', settings);
+    updateModeUI(); updateExample(); updateBestLine();
+  });
+  $('volume').addEventListener('input', () => {
+    settings.volume = Number($('volume').value);
+    if (master) master.gain.setTargetAtTime(volGain(), actx.currentTime, 0.02);
+  });
+  $('testBtn').addEventListener('click', () => {
+    if (!ensureAudio()) { $('audioError').hidden = false; return; }
+    stopShots(); playTone(440, 0.7);
+  });
+
+  /* ---------- boot ---------- */
+  const saved = store.get('pitchdial.settings');
+  if (saved && typeof saved === 'object') KEYS.concat('volume', 'octfold').forEach((k) => { if (saved[k] != null) settings[k] = saved[k]; });
+  applyForm();
+  readForm();
+  readTokens();
+  updateModeUI();
+  updateExample();
+  updateBestLine();
+
+  const redraw = () => {
+    readTokens();
+    if (phase === 'tune') renderTune(false);
+    if (phase === 'sing' && game) renderSing(performance.now());
+    if (phase === 'listen') drawScope(0, 0);
+  };
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(redraw);
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(() => { if (phase === 'tune') renderTune(false); }).observe($('dial'));
+    new ResizeObserver(() => { if (phase === 'sing' && game) renderSing(performance.now()); }).observe($('singDial'));
+    new ResizeObserver(() => {
+      const r = last();
+      if (phase === 'result' && r && !r.miss) drawGauge(r.c, grade(r.abs)[1]);
+    }).observe($('gaugeTrack'));
+  }
+})();
+</script>
+</body>
+</html>

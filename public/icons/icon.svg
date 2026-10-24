@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+<linearGradient id="bg" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#D08D29"/><stop offset="0.5" stop-color="#F4C86E"/><stop offset="1" stop-color="#D08D29"/></linearGradient>
+<linearGradient id="gl" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.26"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.12"/></linearGradient>
+<clipPath id="c"><rect width="512" height="512" rx="112"/></clipPath>
+</defs>
+<g clip-path="url(#c)">
+<rect width="512" height="512" fill="url(#bg)"/>
+<rect x="-3.00" y="0.00" width="6.00" height="122.88" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="29.00" y="0.00" width="6.00" height="66.56" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="59.50" y="0.00" width="9.00" height="184.32" fill="#3B2A10" fill-opacity="0.95"/>
+<rect x="93.00" y="0.00" width="6.00" height="66.56" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="125.00" y="0.00" width="6.00" height="122.88" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="157.00" y="0.00" width="6.00" height="66.56" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="187.50" y="0.00" width="9.00" height="184.32" fill="#3B2A10" fill-opacity="0.95"/>
+<rect x="221.00" y="0.00" width="6.00" height="66.56" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="253.00" y="0.00" width="6.00" height="122.88" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="285.00" y="0.00" width="6.00" height="66.56" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="315.50" y="0.00" width="9.00" height="184.32" fill="#3B2A10" fill-opacity="0.95"/>
+<rect x="349.00" y="0.00" width="6.00" height="66.56" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="381.00" y="0.00" width="6.00" height="122.88" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="413.00" y="0.00" width="6.00" height="66.56" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="443.50" y="0.00" width="9.00" height="184.32" fill="#3B2A10" fill-opacity="0.95"/>
+<rect x="477.00" y="0.00" width="6.00" height="66.56" fill="#3B2A10" fill-opacity="0.6"/>
+<rect x="509.00" y="0.00" width="6.00" height="122.88" fill="#3B2A10" fill-opacity="0.6"/>
+<rect width="512" height="512" fill="url(#gl)"/>
+<rect x="249.00" y="0" width="14.00" height="512" fill="#C42F1A"/>
+<path d="M222.00 0.00H290.00L256 44.20Z" fill="#C42F1A"/>
+</g>
+</svg>

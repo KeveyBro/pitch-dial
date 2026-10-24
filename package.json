@@ -1,0 +1,13 @@
+{
+  "name": "pitch-dial",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ear-training game: hear a tone, match it by dial or by singing.",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "dev": "node tools/serve.js",
+    "test": "node tests/test-pitch.js",
+    "icons": "node tools/make-icons.js"
+  }
+}

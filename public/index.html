@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pitch Dial</title>
+<meta name="description" content="Ear-training game: hear a tone, then match it by turning a dial or by singing. See how far off you were in hertz, cents and fractions of a tone.">
+<meta name="theme-color" content="#E6E8E2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141A1C" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Pitch Dial">
+<meta property="og:description" content="Hear a tone, match it by dial or by voice, and see how close you got.">
+<meta property="og:type" content="website">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Pitch Dial">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Azeret+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+<noscript><p class="noscript">Pitch Dial needs JavaScript to make sound and read the microphone.</p></noscript>
+<main class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Ear training · frequency matching</div>
+      <h1>Pitch Dial</h1>
+    </div>
+    <div class="status" id="status" hidden>
+      <span id="roundLabel">Round 1 of 10</span>
+      <span id="scoreLabel">0 pts</span>
+      <button class="btn slim" id="endBtn" type="button">End game</button>
+    </div>
+  </header>
+
+  <!-- SETUP -->
+  <section class="panel" id="screen-setup">
+    <p class="lede">Listen to a tone, then match it by turning the dial or by singing. After each round you see how far off you were in hertz and as a fraction of a tone.</p>
+
+    <div class="example" aria-label="Example result">
+      <span class="eyebrow">Example round</span>
+      <div class="ex-row"><span>Target <b>440.00 Hz</b></span><span>You <b>446.20 Hz</b></span></div>
+      <p class="ex-verdict"><strong id="exHz">6.20 Hz too high</strong> · <span id="exTone">≈ 1/8 of a tone too high</span> · <span class="muted" id="exCents">+24.2 cents</span></p>
+    </div>
+
+    <form id="setupForm" class="formfoot" novalidate>
+      <div class="settings">
+        <fieldset>
+          <legend class="eyebrow">Answer by</legend>
+          <div class="seg">
+            <label><input type="radio" name="answer" id="answer-dial" value="dial"><span>Turning the dial</span></label>
+            <label><input type="radio" name="answer" id="answer-sing" value="sing"><span>Singing</span></label>
+          </div>
+          <div id="singOpts" hidden>
+            <div class="stack">
+              <label class="check" for="octFold"><input type="checkbox" id="octFold" name="octfold" checked><span>Count the same note in any octave</span></label>
+              <p class="help">Singing uses your microphone. If the microphone is blocked on this page, you can upload a voice recording of each note instead.</p>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Listen time</legend>
+          <div class="seg">
+            <label><input type="radio" name="listen" id="listen-noob" value="noob"><span>5 s</span></label>
+            <label><input type="radio" name="listen" id="listen-easy" value="easy"><span>2.5 s</span></label>
+            <label><input type="radio" name="listen" id="listen-hard" value="hard"><span>Random</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Time to answer</legend>
+          <div class="seg">
+            <label><input type="radio" name="tunetime" id="tune-30" value="30"><span>30 s</span></label>
+            <label><input type="radio" name="tunetime" id="tune-60" value="60"><span>60 s</span></label>
+            <label><input type="radio" name="tunetime" id="tune-0" value="0"><span>No limit</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Rounds</legend>
+          <div class="seg">
+            <label><input type="radio" name="rounds" id="rounds-5" value="5"><span>5</span></label>
+            <label><input type="radio" name="rounds" id="rounds-10" value="10"><span>10</span></label>
+            <label><input type="radio" name="rounds" id="rounds-20" value="20"><span>20</span></label>
+          </div>
+        </fieldset>
+        <fieldset id="rangeDial">
+          <legend class="eyebrow">Frequency range</legend>
+          <div class="seg">
+            <label><input type="radio" name="range" id="range-low" value="low"><span>80–320 Hz</span></label>
+            <label><input type="radio" name="range" id="range-mid" value="mid"><span>150–900 Hz</span></label>
+            <label><input type="radio" name="range" id="range-wide" value="wide"><span>60–2000 Hz</span></label>
+          </div>
+        </fieldset>
+        <fieldset id="rangeVoice" hidden>
+          <legend class="eyebrow">Voice range</legend>
+          <div class="seg">
+            <label><input type="radio" name="vrange" id="vrange-low" value="low"><span>Lower voice · G2–D4</span></label>
+            <label><input type="radio" name="vrange" id="vrange-high" value="high"><span>Higher voice · G3–D5</span></label>
+          </div>
+          <p class="help">Lower is 98–294 Hz, higher is 196–587 Hz. Pick the one that sits comfortably in your voice.</p>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Show fractions of a</legend>
+          <div class="seg">
+            <label><input type="radio" name="unit" id="unit-tone" value="200"><span>Whole tone</span></label>
+            <label><input type="radio" name="unit" id="unit-semi" value="100"><span>Semitone</span></label>
+          </div>
+          <p class="help">A whole tone is two piano keys (200 cents). A semitone is one key (100 cents).</p>
+        </fieldset>
+        <fieldset>
+          <legend class="eyebrow">Volume</legend>
+          <div class="vol">
+            <input type="range" id="volume" min="0" max="100" step="1" value="45" aria-label="Volume">
+            <button class="btn slim" type="button" id="testBtn">Test sound</button>
+          </div>
+          <p class="help">Test sound plays A4 (440 Hz). Headphones help, and stop the target bleeding into the microphone.</p>
+        </fieldset>
+      </div>
+      <div class="actions"><button class="btn primary" type="submit" id="startBtn">Start game</button></div>
+      <p class="error" id="audioError" hidden>This browser can't play generated sound. Try a recent version of Chrome, Safari, Firefox or Edge.</p>
+      <p class="small muted" id="bestLine" hidden></p>
+    </form>
+  </section>
+
+  <!-- LISTEN -->
+  <section class="panel" id="screen-listen" hidden aria-live="polite">
+    <div class="stage">
+      <div class="scope-box">
+        <canvas id="scope" aria-hidden="true"></canvas>
+        <div class="countdown" id="countdown">3</div>
+      </div>
+      <p class="phase-label" id="listenLabel">Get ready</p>
+      <div class="bar" aria-hidden="true"><span id="listenBar"></span></div>
+    </div>
+  </section>
+
+  <!-- TUNE (dial) -->
+  <section class="panel" id="screen-tune" hidden>
+    <div class="timer" id="timer">
+      <div class="timer-row"><span>Match the tone you heard</span><span class="timer-left" id="timerText">30 s left</span></div>
+      <div class="bar" aria-hidden="true"><span id="timerBar"></span></div>
+    </div>
+    <div class="face" id="face" tabindex="0" aria-label="Tuning dial. Use arrow keys to change the frequency.">
+      <div class="readout"><span id="freqNum">440.00</span><span class="unit">Hz</span></div>
+      <div class="note" id="noteName">A4 +0¢</div>
+      <div class="dialwrap"><canvas id="dial" aria-hidden="true"></canvas></div>
+      <p class="hint">Drag the dial sideways, or drag up and down anywhere on this panel. Arrow keys move 1 cent, Shift + arrow moves 10.</p>
+    </div>
+    <div class="coarse">
+      <input type="range" id="coarse" min="0" max="1000" step="1" value="500" aria-label="Coarse tuning">
+      <div class="coarse-ends"><span id="coarseLo">150 Hz</span><span>coarse</span><span id="coarseHi">900 Hz</span></div>
+    </div>
+    <div class="nudges">
+      <button class="btn" type="button" data-step="-10" aria-label="Down 10 cents">−10¢</button>
+      <button class="btn" type="button" data-step="-1" aria-label="Down 1 cent">−1¢</button>
+      <button class="btn" type="button" data-step="1" aria-label="Up 1 cent">+1¢</button>
+      <button class="btn" type="button" data-step="10" aria-label="Up 10 cents">+10¢</button>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" id="soundBtn">Mute your tone</button>
+      <button class="btn primary" type="button" id="submitBtn">Submit</button>
+    </div>
+  </section>
+
+  <!-- SING -->
+  <section class="panel" id="screen-sing" hidden>
+    <div class="timer" id="singTimer">
+      <div class="timer-row"><span>Sing the tone you heard</span><span class="timer-left" id="singTimerText">30 s left</span></div>
+      <div class="bar" aria-hidden="true"><span id="singTimerBar"></span></div>
+    </div>
+    <div class="face sing" id="singLive">
+      <div class="readout"><span id="singNum">—</span><span class="unit">Hz</span></div>
+      <div class="note" id="singNote">Listening…</div>
+      <div class="dialwrap"><canvas id="singDial" aria-hidden="true"></canvas></div>
+      <p class="sing-state" id="singState" aria-live="polite">Sing and hold the note</p>
+      <div class="meters">
+        <div class="meter-row"><span>Hold</span><div class="bar thick hold"><span id="holdBar"></span></div></div>
+        <div class="meter-row"><span>Mic level</span><div class="bar level"><span id="levelBar"></span></div></div>
+      </div>
+      <p class="hint">Hold one steady note, on a vowel like “ah”, and it locks in after about a second.</p>
+    </div>
+    <div class="upload" id="singUpload" hidden>
+      <p class="sing-state">Record yourself singing the note</p>
+      <p class="help">The microphone isn't available: it may be blocked for this site, or there's no input device. To use it, allow the microphone in your browser's site settings and start a new game. Or open any voice-recorder app, sing the note you just heard and hold it for about two seconds, then upload the recording here.</p>
+      <div class="actions">
+        <input type="file" id="uploadInput" accept="audio/*" class="sr-only">
+        <label class="btn primary" for="uploadInput">Upload recording</label>
+        <button class="btn" type="button" id="hearAgain">Hear the target again</button>
+      </div>
+      <p class="small muted" id="uploadStatus" role="status"></p>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" id="skipBtn">Skip round</button>
+      <button class="btn primary" type="button" id="bestBtn" disabled>Use my best attempt</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="panel" id="screen-result" hidden>
+    <div class="res-head">
+      <span class="chip" id="rGrade" data-grade="good">Close</span>
+      <span class="small muted" id="rRound">Round 1 of 10</span>
+    </div>
+    <div class="pair">
+      <div><span class="eyebrow">Target</span><span class="val"><span id="rTarget">440.00</span> <small>Hz</small></span></div>
+      <div><span class="eyebrow" id="rYouLabel">You</span><span class="val"><span id="rYou">446.20</span> <small>Hz</small></span></div>
+    </div>
+    <div class="verdict" role="status">
+      <p class="v-hz" id="rHz">6.20 Hz too high</p>
+      <p class="v-tone" id="rTone">≈ 1/8 of a tone too high</p>
+      <p class="v-cents" id="rCents">+24.2 cents · 67 pts</p>
+    </div>
+    <p class="small muted" id="rOct" hidden></p>
+    <div class="gauge" id="gauge" aria-hidden="true">
+      <div class="g-ends"><span>Too low</span><span>Too high</span></div>
+      <div class="g-track" id="gaugeTrack"></div>
+      <p class="help" id="gaugeUnit">Scale in fractions of a tone.</p>
+    </div>
+    <p class="small muted" id="rNote" hidden></p>
+    <div class="actions">
+      <button class="btn" type="button" id="hearTarget">Hear target</button>
+      <button class="btn" type="button" id="hearYours">Hear yours</button>
+      <button class="btn" type="button" id="hearBoth">Hear both</button>
+      <button class="btn primary" type="button" id="nextBtn">Next round</button>
+    </div>
+  </section>
+
+  <!-- SUMMARY -->
+  <section class="panel" id="screen-summary" hidden>
+    <div class="sumhead">
+      <h2>Game over</h2>
+      <span class="chip" id="sPB" data-grade="best" hidden>New personal best</span>
+    </div>
+    <div class="tiles">
+      <div class="tile"><span class="eyebrow">Average miss</span><b id="sAvgHz">0.00 Hz</b><span class="sub" id="sAvgTone">≈ 1/8 of a tone</span></div>
+      <div class="tile"><span class="eyebrow">Score</span><b id="sScore">0</b><span class="sub" id="sScoreMax">out of 1000</span></div>
+      <div class="tile"><span class="eyebrow">Closest round</span><b id="sBest">Round 1</b><span class="sub" id="sBestSub">0.00 Hz</span></div>
+    </div>
+    <p class="refline" id="sRef"></p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Round</th><th>Target Hz</th><th id="thYours">Yours Hz</th><th>Off Hz</th><th id="thUnit">Off (tones)</th><th>Cents</th></tr></thead>
+        <tbody id="sRows"></tbody>
+      </table>
+    </div>
+    <p class="small muted" id="sFoot" hidden>↓8ve or ↑8ve means you sang the note an octave below or above, and that round was scored against the target in your octave.</p>
+    <div class="actions">
+      <button class="btn" type="button" id="settingsBtn">Change settings</button>
+      <button class="btn primary" type="button" id="againBtn">Play again</button>
+    </div>
+  </section>
+</main>
+</body>
+</html>
