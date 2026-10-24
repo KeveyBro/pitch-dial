@@ -6,17 +6,20 @@ export const round2 = (x) => Math.round(x * 100) / 100;
 export const logRandom = (lo, hi) => lo * Math.pow(hi / lo, Math.random());
 export const unitWord = (unit) => (unit === 200 ? 'tone' : 'semitone');
 
+// ['1/8', 'of a tone'], ['0.70', 'of a tone'], ['1.35', 'tones']
+export function fractionParts(absCents, unit) {
+  const word = unitWord(unit);
+  const f = absCents / unit;
+  if (f < 0.6) return [`1/${Math.round(1 / f)}`, `of a ${word}`];
+  const v = f.toFixed(2);
+  if (v === '1.00') return ['1', word];
+  return [v, f < 1 ? `of a ${word}` : `${word}s`];
+}
 // "≈ 1/8 of a tone", "≈ 0.70 of a tone", "≈ 1.35 tones"
 export function fractionText(absCents, unit) {
-  const word = unitWord(unit);
   if (absCents < 0.01) return 'spot on';
-  const f = absCents / unit;
-  if (f >= 0.6) {
-    const v = f.toFixed(2);
-    if (v === '1.00') return `≈ 1 ${word}`;
-    return f < 1 ? `≈ ${v} of a ${word}` : `≈ ${v} ${word}s`;
-  }
-  return `≈ 1/${Math.round(1 / f)} of a ${word}`;
+  const [num, words] = fractionParts(absCents, unit);
+  return `≈ ${num} ${words}`;
 }
 export function fractionShort(absCents, unit) {
   if (absCents < 0.01) return '0';
