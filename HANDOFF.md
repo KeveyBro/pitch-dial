@@ -4,7 +4,7 @@ Pitch Dial is a single-page ear-training game. It plays a target tone, and the p
 
 It was inspired by matchthefreq.site. The player wanted the same game, plus the fraction-of-a-tone readout, plus a singing mode.
 
-It's now a hostable static web app: everything the browser needs is in `public/`, with no build step, no backend and no dependencies. Deploy that folder to any HTTPS static host. `README.md` has the hosting steps.
+It's a web app: everything the browser needs is in `public/`, with no build step. A small Cloudflare Worker (`worker/index.js`) adds the community results: players' games are shared anonymously and stored in a Cloudflare D1 database, so each summary can compare the player with everyone else. Without the Worker (on any static host, such as the old GitHub Pages copy), the game runs the same and compares players with the research only. `README.md` has the hosting steps.
 
 Earlier versions, kept for reference: the claude.ai artifact (https://claude.ai/artifact/W3KBvDwk3fSpXqAKgEQw9E, private to the owner), and the single-file `pitch-dial-mic.html`. `pitch-dial-project.zip` holds the artifact-format source and its old build and test tools. The web app replaces all of them.
 
@@ -20,24 +20,33 @@ Earlier versions, kept for reference: the claude.ai artifact (https://claude.ai/
 | `public/js/audio.js` | Tone output. |
 | `public/js/mic.js` | Microphone input. |
 | `public/js/canvas.js` | Dial and oscilloscope drawing. |
+| `public/js/community.js` | Pure logic for the community results, shared by the game, the Worker and the tests: checking and rescoring a shared game, the histogram bins, percentiles, the research baselines, and the frequency ranges. |
+| `worker/index.js` | The results API (`POST /api/results`, `GET /api/stats`), run by Cloudflare Workers. |
+| `migrations/` | The D1 database's tables (`0001`) and the research seed (`0002`, generated), applied in order by `wrangler d1 migrations apply`. |
+| `tools/make-seed.js` | Writes `migrations/0002_research_seed.sql` from `SEED` in `community.js` (`npm run seed`). |
+| `wrangler.jsonc` | Cloudflare config: static assets from `public/`, the Worker for `/api/*` only, the D1 database, and a separate `preview` environment with its own database. |
 | `public/sw.js` | Service worker for offline use. |
 | `public/manifest.webmanifest`, `public/icons/` | Lets people install the app. Run `npm run icons` to regenerate the icons. |
-| `public/_headers` | CSP, Permissions-Policy and cache headers. Netlify and Cloudflare Pages read it. |
-| `tools/serve.js` | Zero-dependency dev server. It applies `_headers`, so the CSP gets exercised locally. |
+| `public/_headers` | CSP, Permissions-Policy and cache headers for the static files. Cloudflare (and Netlify) read it; the Worker sets its own headers on API responses. |
+| `tools/serve.js` | Zero-dependency static server (`npm run dev:static`): the game without the results API. It applies `_headers`. |
 | `tools/make-icons.js` | Draws the icon and writes the SVG and PNGs. |
 | `public/samples/` | Recorded instrument notes (16-bit mono WAV at 22.05 kHz, 5.6 MB in all) plus `index.json` (each note's measured pitch, loop points and gain). Generated; don't edit by hand. |
 | `tools/build-samples.js` | Downloads the recordings from VSCO 2 Community Edition, measures and loops them, and writes `public/samples/`. See "Recorded instruments". |
 | `tests/test-pitch.js` | Headless tests for the scoring maths, YIN, the tracker, recording analysis (using synthetic voices), instrument ranges and the sample set. It imports the modules directly. |
-| `.github/workflows/pages.yml` | Optional GitHub Pages deploy: it runs the tests, then publishes `public/`. |
+| `.github/workflows/pages.yml` | The GitHub Pages deploy: it runs the tests, then publishes `public/` as a static copy without community results. Retire it once Cloudflare is live. |
 
 ```bash
-npm run dev      # http://localhost:8080
+npm install         # once: installs wrangler, Cloudflare's dev and deploy tool
+npm run dev         # http://localhost:8787 with the results API and a local practice database
+npm run dev:static  # http://localhost:8080, the game only
 npm test
 npm run icons
-npm run samples  # rebuilds public/samples/ (downloads ~270 MB into a temp folder the first time)
+npm run samples     # rebuilds public/samples/ (downloads ~270 MB into a temp folder the first time)
 ```
 
-`package.json` exists only for these scripts and `"type": "module"`. There are no dependencies. Node 18+ is enough.
+The game itself has no dependencies. `package.json` holds the scripts, `"type": "module"`, and one dev dependency, wrangler (pinned to 4.149.0), which only runs locally and in Cloudflare's builds. Node 20+.
+
+`npm run dev` first applies any new migrations to the local database (it asks to confirm), then serves the game and the API. The local database lives in `.wrangler/`, which git ignores.
 
 ## Microphone
 
@@ -49,7 +58,7 @@ Live input has been checked in Chromium by swapping `getUserMedia` for a synthet
 
 ## Offline and caching
 
-`sw.js` caches the app on first visit, and each instrument family's recordings the first time that family is used. App files are network-first, so a new deploy shows up on the next load without bumping a version; the cache is only used when the network fails. Google Fonts files are cache-first because their URLs never change. Bump `CACHE` in `sw.js` only when the caching logic itself changes. The service worker is registered only in a secure context.
+`sw.js` caches the app on first visit, and each instrument family's recordings the first time that family is used. App files are network-first, so a new deploy shows up on the next load without bumping a version; the cache is only used when the network fails. Google Fonts files are cache-first because their URLs never change. Bump `CACHE` in `sw.js` only when the caching logic itself changes (it's at `v2`: Cloudflare redirects `index.html` to `/`, and browsers won't show a redirected response for a page load, so the page is now cached as `./` only). `/api/` requests always skip the service worker. The service worker is registered only in a secure context.
 
 ## How the code is organised
 
@@ -58,6 +67,7 @@ The modules have one job each, and only `main.js` touches the DOM outside the ca
 1. **maths.js**: `centsBetween`, `round2`, `logRandom`, `unitWord`, `fractionText` (the "≈ 1/x of a tone" wording), `fractionShort`, `noteLabel`, `points`, `grade`, `describe`, `foldOctave`, `NAMES`.
 2. **pitch.js**: `FMIN`/`FMAX` (60–1100 Hz), `rms`, `yin(buf, sr, thresh, fmin, fmax)` (threshold 0.15, parabolic interpolation; the range defaults to `FMIN`–`FMAX`), `medianOf`, `makeTracker()`, `analyzeRecording(audioBuffer)`.
 3. **audio.js**: a shared `AudioContext` and master gain. `playTone(freq, dur, delay, inst)` handles one-shot tones, and `startTuner(freq, on, inst)`/`setTunerFreq`/`setTunerOn`/`stopTuner` handle the dial's continuous tone. `INSTRUMENTS`, `FAMILIES`, `pickInstrument(family, freq)` and `familyInstruments(family)` define the sounds (see "Sound families" below). `loadSamples(keys)` fetches and decodes recordings; until they arrive, an instrument plays its synth voice. `buildNote(ctx, inst, freq, dest)` builds one note in any context, including an `OfflineAudioContext`, which is how pitch and loudness were checked. `setVolume(0–1)` maps volume as `0.5 × v²`, and the master runs through a peak limiter (threshold −3 dB) that only acts near full volume. `audioContext()` returns the context, or null before the first `ensureAudio()`.
+3b. **community.js**: `normalizeGame(payload)` (the server's check and rescore of a shared game), `binOf`/`binEdges`/`BIN_COUNT` (the histogram), `fractionBelow`/`quantile`, `RESEARCH`, `RANGES`/`VRANGES`, `MIN_ROUNDS` (5) and `MIN_GAMES` (30). See "Community results".
 4. **mic.js**: `openMic` (needs `ensureAudio()` first), `readMic` (the latest frame, in a reused buffer), `micOpen`, `closeMic`. Echo cancellation, noise suppression and AGC are turned off. The analyser is connected to a zero-gain sink so it keeps processing.
 5. **canvas.js**: `readTokens` reads the CSS colour tokens so the canvases follow the theme. `drawDial(canvas, freq, lo, hi, dim)` draws the amber dial at 1 px = 1 cent, with semitone ticks labelled with note name and Hz. `drawScope(canvas, t, amp)` draws the listen-screen wave.
 6. **main.js, game flow**: phases are `setup → listen → tune | sing → result → … → summary`. Each async step captures `flow` and stops if it has changed; anything that leaves a phase does `flow++`.
@@ -96,6 +106,36 @@ The Sound setting picks a family: Sine, Keyboard, Strings, Woodwinds, Brass, Voi
 - **Stretch limits:** most notes are within 3.6 semitones of a recording. Two edges stretch further and may sound unnatural. The marimba stretches 6.5 semitones down to 60 Hz (its lowest recording is F2). The trumpet stretches up to 11 semitones above C6, its top recording, to reach 2000 Hz. The French horn hands over to the trumpet at D♯4 because the horn has no recordings between C4 and D5. `tests/test-pitch.js` checks these limits.
 - **Not yet done:** listening to every sound with real ears. VSCO 2 CE has no non-vibrato cello, viola or violin sustains. If steadier strings are wanted, try another source, such as the University of Iowa samples, or flatten the vibrato in the build.
 - **Default sound:** Sine is the default for a new visitor, and no recordings load until a family is picked. Each browser remembers its last choice, along with the other settings.
+
+### Community results
+
+Players' finished games are shared anonymously and stored in Cloudflare D1, and each summary compares the player with them.
+
+- **Consent:** sharing is **on unless the player turns it off**, which was the owner's choice. A checkbox on the setup screen ("Add my results to the community stats, anonymously") explains in a "What's shared?" note exactly what's sent. It starts **off** when the browser sends a Global Privacy Control signal (`navigator.globalPrivacyControl`). The choice is saved with the other settings. Turning it off sends nothing, and the player still sees the comparison.
+- **What's stored:** one row per game in `games`: the date (no time), mode, mic input type, sound family, listen and answer time, range, octave fold, scored and missed counts, average and mean signed cents, and the rounds as JSON (`[[target, answer or null, instrument, cents or null], ...]`). No IP address, ID, account, location, exact time or audio. Only games with at least `MIN_ROUNDS` (5) scored rounds are sent.
+- **The server rescores everything:** `normalizeGame` in `community.js` checks every field against what the game can produce (targets inside the chosen range, instruments that belong to the family, dial answers inside the range, sung answers within 40–2000 Hz, 1–20 rounds). Then it recomputes each miss, with octave folding for singing, and averages before rounding, exactly as the summary does. The browser never sends its own cents.
+- **Flood protection without tracking anyone:** a site-wide cap of 20 shared games a minute (the `throttle` table), plus `Content-Type: application/json` and an 8 KB limit on posts. Cloudflare's own rate-limit binding was considered, but its free-plan availability couldn't be confirmed.
+- **Free-tier budget:** a shared game costs about 3 row writes (throttle, game, histogram). D1's free tier allows 100,000 writes a day, so about 30,000 shared games a day. The stats read 2 rows (the histogram has one row per mode), and each Worker instance reuses them for 2 minutes. If D1 is down or past its daily limit, the API returns 503, and the game carries on with the research comparison only.
+- **Stats:** `histogram` keeps, per mode, a count of games in 216 bins of average miss (0.5¢ wide up to 50¢, 2¢ to 200¢, 25¢ to 1200¢, then one bin beyond), updated with `json_set` as each game arrives. `GET /api/stats` returns the counts. The browser works out the median and the player's percentile with `quantile` and `fractionBelow`. The JSON path is built in JS (`$[29]`), because D1 binds JS numbers as REAL and SQLite rejects `$[29.0]`; that bug was caught in local testing.
+- **Research seed:** so the comparison works from launch, each mode starts with 50 research-modelled games: game averages spread evenly (by quantile, not at random) along a published distribution. `SEED` in `community.js` holds the parameters and sources:
+  - Dial: pitch-discrimination thresholds of 918 adults (Sci Rep 2017): 5% at 6.2¢, half at 14.5¢, 95% at 77.4¢. Discrimination isn't matching, but it's the same order as non-musicians' 13¢ slider-matching average.
+  - Singing: single-pitch matching by 50 untrained singers (Berkowska & Dalla Bella 2013, Front. Psychol.): median 87.8¢, mean 140.2¢, range 2.3–522.1¢, modelled as a log-normal (σ 0.9675), clipped to that range. 22 of the 50 seed games are over a semitone, against the study's 48%.
+  - The seed lives only in the histogram rows `dial:research` and `sing:research` (`migrations/0002_research_seed.sql`, generated by `npm run seed`; a test fails if it's out of date). It is never in the `games` table, so analyses of real games never see it.
+  - It's always labelled. While pooled in, the text says, for example, "51 dial games: 50 modelled on published research (pitch discrimination in 918 adults) and 1 shared by Pitch Dial player", and the scale's marker reads "Median" rather than "Players". `comparisonFor` drops the seed once a mode has `SEED_UNTIL` (100) real games.
+  - The two singing studies disagree: Hutchins et al.'s 38¢ marker against this seed's 88¢ median. They tested different samples on different tasks. Both are shown with sources, and real games will settle it for Pitch Dial's own players.
+  - The owner's first game (10.4¢, in "The player so far") is a single real result, so it isn't used for the seed.
+- **The summary's "How you compare"** is a log scale from 2¢ to 200¢. It shows the player's average, the research benchmarks for the mode (`RESEARCH`: best 5% can hear 6.2¢ and non-musicians with a slider 13¢ for the dial; non-musicians singing 38¢), and, once the mode has `MIN_GAMES` (30) shared games, the players' median, with "You beat N% of M games". Labels drop into extra rows rather than overlap (three rows on a phone). The text names the research sources and says whether this game was shared.
+- **Comparing like with like:** the comparison is per mode (dial or singing), but mixes ranges, sounds and listen times. Stratifying (for example by range) is a possible refinement once there's enough data.
+- **Tested locally** with `wrangler dev` and its local D1. Good and bad posts were sent by `curl`: 8 kinds of implausible game were rejected with clear reasons, and stored rows were checked against hand calculations. Full games were played in the browser, with sharing on and off, on a host with no API (the fallback), and with 250 made-up games seeded into the local database to see the players' marker. All of that ran at desktop and phone widths, in light and dark mode. The seeded data was then deleted.
+
+### Hosting on Cloudflare
+
+- **Workers with static assets**, which Cloudflare now recommends over Pages for new projects. `wrangler.jsonc` serves `public/` as assets. Only `/api/*` runs the Worker (`run_worker_first`), so page loads cost no Worker requests. `public/_headers` applies to the static files, and the Worker sets its own headers on API responses.
+- **Two databases:** `pitch-dial-results` for the live site, and `pitch-dial-results-preview` for the `preview` environment, which deploys a separate Worker, `pitch-dial-preview`. By default, Cloudflare previews share the live database, so practice games would have polluted the real results. The `database_id` values in `wrangler.jsonc` are placeholders until the databases are created (`npx wrangler d1 create ...`).
+- **Deploys:** Workers Builds connects the GitHub repo.
+  - Production branch `main`: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
+  - Other branches: `npx wrangler d1 migrations apply DB --remote --env preview && npx wrangler deploy --env preview`
+- **GitHub Pages** keeps publishing a static copy (without community results) until it's retired.
 
 ### Scoring rules
 
@@ -145,8 +185,8 @@ First dial game (5 rounds, mostly low targets of 158–492 Hz): average miss **1
 ## Ideas for next steps
 
 1. Test singing mode with a real mic in Chrome, Edge, Firefox and Safari, including iOS Safari as an installed app. Tune the RMS gate (0.006), the confidence cut-off (0.8) and the hold time (1.2 s) against real voices.
-2. Add a sharp/flat bias stat to the summary, such as the mean signed cents and the count of high vs low misses.
-3. Put the research benchmarks on the summary as markers on a scale, so the player sees where their average falls.
+2. Add a sharp/flat bias stat to the summary, such as the mean signed cents and the count of high vs low misses. Shared games already store `mean_cents`, so the community results could show players' overall tendency too.
+3. Done: the summary's "How you compare" scale shows the research benchmarks and Pitch Dial players' median (see "Community results"). Next ideas there: a "Results so far" section on the setup screen (dial vs singing, each family, low vs high notes, sharp vs flat), and per-round context once there's enough data.
 4. Split results by frequency band (below 250 Hz vs above), because low notes are harder.
 5. Add a history across games (per-viewer localStorage) with a small trend chart.
 6. Done: instrument families (see "Sound families"). Next, consider showing the instrument in the summary table, and splitting bests by family, since some timbres may be easier to match than others.
