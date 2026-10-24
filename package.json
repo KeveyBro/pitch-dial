@@ -4,11 +4,18 @@
   "private": true,
   "description": "Ear-training game: hear a tone, match it by dial or by singing.",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "node tools/serve.js",
+    "dev": "wrangler d1 migrations apply DB --local && wrangler dev",
+    "dev:static": "node tools/serve.js",
     "test": "node tests/test-pitch.js",
     "icons": "node tools/make-icons.js",
-    "samples": "node tools/build-samples.js"
+    "samples": "node tools/build-samples.js",
+    "seed": "node tools/make-seed.js"
+  },
+  "devDependencies": {
+    "wrangler": "4.149.0"
   }
 }

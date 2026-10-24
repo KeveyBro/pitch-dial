@@ -132,6 +132,13 @@
           <p class="help" id="testHelp">Test sound plays A4 (440 Hz). Headphones help, and stop the target bleeding into the microphone.</p>
         </fieldset>
       </div>
+      <div class="share">
+        <label class="check" for="share"><input type="checkbox" id="share" name="share"><span>Add my results to the community stats, anonymously</span></label>
+        <details class="help">
+          <summary>What's shared?</summary>
+          <p>When a game ends, Pitch Dial sends its settings (answer mode, sound, range, listen and answer time) and, for each round, the target, your answer and the instrument. It sends no name, account, ID, location, exact time or audio, and results are only ever shown as overall comparisons. Sharing is on unless you turn it off here; it starts off if your browser sends a Global Privacy Control signal.</p>
+        </details>
+      </div>
       <div class="actions"><button class="btn primary" type="submit" id="startBtn">Start game</button></div>
       <p class="error" id="audioError" hidden>This browser can't play generated sound. Try a recent version of Chrome, Safari, Firefox or Edge.</p>
       <p class="small muted" id="bestLine" hidden></p>
@@ -252,7 +259,13 @@
       <div class="tile"><span class="eyebrow">Score</span><b id="sScore">0</b><span class="sub" id="sScoreMax">out of 1000</span></div>
       <div class="tile"><span class="eyebrow">Closest round</span><b id="sBest">Round 1</b><span class="sub" id="sBestSub">0.00 Hz</span></div>
     </div>
-    <p class="refline" id="sRef"></p>
+    <div class="compare" id="compare">
+      <span class="eyebrow">How you compare</span>
+      <div class="c-track" id="cTrack" aria-hidden="true"></div>
+      <p class="refline" id="cPlayers"></p>
+      <p class="refline" id="sRef"></p>
+      <p class="small muted" id="sShare"></p>
+    </div>
     <div class="tablewrap">
       <table>
         <thead><tr><th>Round</th><th>Target Hz</th><th id="thYours">Yours Hz</th><th>Off Hz</th><th id="thUnit">Off (tones)</th><th>Cents</th></tr></thead>

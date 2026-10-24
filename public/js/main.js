@@ -4,10 +4,9 @@ import { FMIN, FMAX, rms, yin, makeTracker, analyzeRecording } from './pitch.js'
 import { INSTRUMENTS, FAMILIES, RANDOM_FAMILIES, pickInstrument, familyInstruments, loadSamples, audioContext, ensureAudio, setVolume, playTone, stopShots, startTuner, setTunerFreq, setTunerOn, stopTuner } from './audio.js';
 import { micOpen, openMic, readMic, closeMic } from './mic.js';
 import { readTokens, drawDial, drawScope } from './canvas.js';
+import { RANGES, VRANGES, MIN_ROUNDS, MIN_GAMES, RESEARCH, SEED, comparisonFor, fractionBelow, quantile } from './community.js';
 
 const $ = (id) => document.getElementById(id);
-const RANGES = { low: [80, 320], mid: [150, 900], wide: [60, 2000] };
-const VRANGES = { low: [98, 294], high: [196, 587] };
 const LISTEN = { noob: 5, easy: 2.5, hard: null };
 
 const store = {
@@ -16,7 +15,9 @@ const store = {
 };
 
 /* ---------- state ---------- */
-const settings = { answer: 'dial', listen: 'easy', tunetime: '30', rounds: '10', range: 'mid', vrange: 'low', unit: '200', timbre: 'sine', octfold: true, volume: 45 };
+const settings = { answer: 'dial', listen: 'easy', tunetime: '30', rounds: '10', range: 'mid', vrange: 'low', unit: '200', timbre: 'sine', octfold: true, volume: 45,
+  // shared unless turned off, except when the browser sends a Global Privacy Control signal
+  share: !navigator.globalPrivacyControl };
 const KEYS = ['answer', 'listen', 'tunetime', 'rounds', 'range', 'vrange', 'unit', 'timbre'];
 let game = null;
 let flow = 0;           // bumps to cancel stale async steps
@@ -34,6 +35,7 @@ function readForm() {
   const fd = new FormData($('setupForm'));
   KEYS.forEach((k) => { const v = fd.get(k); if (v != null) settings[k] = String(v); });
   settings.octfold = $('octFold').checked;
+  settings.share = $('share').checked;
   settings.volume = Number($('volume').value);
   setVolume(settings.volume / 100);
 }
@@ -43,6 +45,7 @@ function applyForm() {
     if (el) el.checked = true;
   });
   $('octFold').checked = settings.octfold !== false;
+  $('share').checked = settings.share;
   $('volume').value = String(settings.volume);
 }
 function formUnit() { return Number(settings.unit) === 100 ? 100 : 200; }
@@ -158,6 +161,7 @@ async function startGame() {
     rounds: Number(settings.rounds) || 10,
     tuneTime: Number(settings.tunetime) || 0,
     listen: settings.listen,
+    rangeKey: sing ? (VRANGES[settings.vrange] ? settings.vrange : 'low') : (RANGES[settings.range] ? settings.range : 'mid'),
     family: settings.timbre,
     round: 0, score: 0, results: [],
     sound: true, target: 0, inst: 'sine', freq: 0, lastVoiced: 0
@@ -432,6 +436,110 @@ function drawGauge(c, cls) {
   $('gaugeUnit').textContent = `Scale marks are fractions of a ${unitWord(unit)}, from 1/16 out to 2 ${unitWord(unit)}s either side.`;
 }
 
+/* ---------- community results ---------- */
+// "How you compare": your average miss on a log scale from 2¢ to 200¢, next to the research
+// benchmarks, and next to Pitch Dial players' median once the mode has MIN_GAMES shared games.
+const C_LO = 2, C_HI = 200;
+const cPos = (c) => Math.min(1, Math.max(0, Math.log(c / C_LO) / Math.log(C_HI / C_LO)));
+function drawCompare(you, mode, players, cls) {
+  const track = $('cTrack');
+  track.textContent = '';
+  const W = track.clientWidth || 1;
+  const add = (cl, p, text) => {
+    const el = document.createElement('span');
+    el.className = cl;
+    el.style.left = `${p * 100}%`;
+    if (text) el.textContent = text;
+    track.appendChild(el);
+    return el;
+  };
+  // keep labels inside the track at the ends; returns the label's left and right in px
+  const place = (el, p) => {
+    const w = el.offsetWidth;
+    if (p * W < w / 2) { el.classList.add('edge-l'); return [p * W, p * W + w]; }
+    if ((1 - p) * W < w / 2) { el.classList.add('edge-r'); return [p * W - w, p * W]; }
+    return [p * W - w / 2, p * W + w / 2];
+  };
+  [2, 5, 10, 20, 50, 100, 200].forEach((c) => { add('c-tick', cPos(c)); place(add('c-num', cPos(c), `${c}¢`), cPos(c)); });
+  const marks = RESEARCH[mode].map((r) => ({ c: r.cents, text: `${r.label} ${r.cents}¢`, cl: '' }));
+  // "Players" only when every game compared is a real player's; while research games are pooled in, "Median"
+  if (players) marks.push({ c: players.median, text: `${players.research ? 'Median' : 'Players'} ${players.median.toFixed(1)}¢`, cl: ' players' });
+  // marker labels sit in rows under the scale: each takes the first row it fits in without
+  // overlapping, and the track grows to hold the rows (three are needed on a phone)
+  const ends = [];
+  marks.sort((a, b) => a.c - b.c).forEach((m) => {
+    const p = cPos(m.c);
+    add('c-mark' + m.cl, p);
+    const lab = add('c-label' + m.cl, p, m.text);
+    const [l, r] = place(lab, p);
+    let row = ends.findIndex((e) => l > e + 6);
+    if (row < 0) row = ends.push(-Infinity) - 1;
+    ends[row] = r;
+    lab.style.top = `${60 + row * 16}px`;
+  });
+  track.style.height = `${60 + ends.length * 16 + 2}px`;
+  const dot = add('c-you', cPos(you));
+  dot.dataset.grade = cls;
+  const yl = add('c-you-label', cPos(you), `You ${you.toFixed(1)}¢${you > C_HI ? ' (off scale)' : ''}`);
+  yl.dataset.grade = cls;
+  place(yl, cPos(you));
+}
+function compareText(you, mode, unit, stats) {
+  const what = mode === 'sing' ? 'singing' : 'dial';
+  let players;
+  if (stats === 'loading') players = 'Checking how other players did…';
+  else if (!stats) players = "Player results aren't available right now, so this compares you with research instead.";
+  else if (stats.n < MIN_GAMES) players = `Pitch Dial players have shared ${stats.n} ${what} game${stats.n === 1 ? '' : 's'} so far. A comparison with them appears once there are ${MIN_GAMES}.`;
+  else {
+    // say exactly what's being compared: research-modelled games, real players' games, or both
+    const pl = stats.players, s = (k) => (k === 1 ? '' : 's');
+    const of = !stats.research ? `${stats.n.toLocaleString()} ${what} games shared by Pitch Dial players`
+      : pl ? `${stats.n.toLocaleString()} ${what} games: ${stats.research} modelled on published research (${SEED[mode].about}) and ${pl} shared by Pitch Dial player${s(pl)}`
+      : `${stats.research} ${what} games modelled on published research (${SEED[mode].about}); no players have shared ${what} games yet`;
+    players = `You beat ${Math.round(stats.beat * 100)}% of ${of}. The median miss is ${stats.median.toFixed(1)} cents (${fractionText(stats.median, unit)}).`;
+  }
+  $('cPlayers').textContent = players;
+  $('sRef').textContent = `Research: ${RESEARCH[mode].map((r) => r.text).join('; ')}.`;
+}
+function sharePayload() {
+  return {
+    v: 1, mode: game.mode, input: game.mode === 'sing' ? game.micMode : null, family: game.family,
+    listen: game.listen, time: game.tuneTime, range: game.rangeKey, fold: game.fold,
+    rounds: game.results.map((r) => [r.target, r.miss ? null : r.you, r.inst])
+  };
+}
+// Both calls fail quietly (no results service on this host, offline, quota reached): the
+// summary then compares with research only.
+const postGame = (payload) => fetch('api/results', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true })
+  .then((r) => (r.ok ? 'added' : r.status === 429 ? 'busy' : 'failed'), () => 'failed');
+const getStats = () => fetch('api/stats').then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.v === 1 ? j : null), () => null);
+
+function showCommunity(avgC, scored) {
+  const mode = game.mode, unit = game.unit, cls = grade(avgC)[1], id = flow;
+  drawCompare(avgC, mode, null, cls);
+  compareText(avgC, mode, unit, 'loading');
+  const share = settings.share && scored >= MIN_ROUNDS;
+  $('sShare').textContent = !settings.share ? "Sharing is off, so this game wasn't added to the community stats."
+    : !share ? `Games need at least ${MIN_ROUNDS} scored rounds to be added to the community stats.`
+    : 'Adding this game to the community stats…';
+  // post first, so this game is counted if the same server answers the stats request
+  (share ? postGame(sharePayload()) : Promise.resolve(null)).then(async (outcome) => {
+    const stats = await getStats();
+    if (id !== flow) return;
+    if (outcome) {
+      $('sShare').textContent = outcome === 'added' ? 'This game was added to the community stats, anonymously. You can turn sharing off on the settings screen.'
+        : outcome === 'busy' ? "The community stats are busy, so this game wasn't added." : "This game couldn't be added to the community stats right now.";
+    }
+    const m = stats && comparisonFor(stats, mode);
+    const s = !m ? null : { ...m, median: m.n ? quantile(0.5, m.bins) : null, beat: 1 - fractionBelow(avgC, m.bins) };
+    compareText(avgC, mode, unit, s);
+    lastCompare = { avgC, players: s && s.n >= MIN_GAMES ? s : null, cls };
+    drawCompare(avgC, mode, lastCompare.players, cls);
+  });
+  lastCompare = { avgC, players: null, cls };
+}
+let lastCompare = null;
+
 function showSummary() {
   flow++;
   stopTuner(); stopShots(); closeMic();
@@ -439,8 +547,10 @@ function showSummary() {
   const rs = game.results, unit = game.unit, sing = game.mode === 'sing';
   const ok = rs.filter((r) => !r.miss);
   const n = ok.length, misses = rs.length - n;
+  $('compare').hidden = !n;
   if (n) {
     const avgC = ok.reduce((s, r) => s + r.abs, 0) / n;
+    showCommunity(avgC, n);
     // each Hz miss is scaled to what it would be at 440 Hz before averaging, since the same
     // Hz gap is a bigger miss on a low note than on a high one
     const avgHz = ok.reduce((s, r) => s + Math.abs(r.diff) * 440 / r.ref, 0) / n;
@@ -468,9 +578,6 @@ function showSummary() {
   }
   $('sScore').textContent = String(game.score);
   $('sScoreMax').textContent = `out of ${rs.length * 100}`;
-  $('sRef').textContent = sing
-    ? `For reference: in a lab study, non-musicians singing a note they had just heard missed by 38 cents on average (${fractionText(38, unit)}).`
-    : `For reference: in a lab study, non-musicians matching tones with a slider missed by 13 cents on average (${fractionText(13, unit)}), and they could replay the target.`;
   $('thUnit').textContent = `Off (${unitWord(unit)}s)`;
   $('thYours').textContent = sing ? 'Sang Hz' : 'Yours Hz';
   const body = $('sRows');
@@ -634,8 +741,8 @@ $('testBtn').addEventListener('click', async () => {
 
 /* ---------- boot ---------- */
 const saved = store.get('pitchdial.settings');
-if (saved && typeof saved === 'object') KEYS.concat('volume', 'octfold').forEach((k) => {
-  if (saved[k] == null) return;
+if (saved && typeof saved === 'object') KEYS.concat('volume', 'octfold', 'share').forEach((k) => {
+  if (saved[k] == null || (k === 'share' && typeof saved[k] !== 'boolean')) return;
   if (KEYS.includes(k) && !document.querySelector(`input[name="${k}"][value="${saved[k]}"]`)) return; // an option that no longer exists
   settings[k] = saved[k];
 });
@@ -664,6 +771,9 @@ if ('ResizeObserver' in window) {
     const r = last();
     if (phase === 'result' && r && !r.miss) drawGauge(r.c, grade(r.abs)[1]);
   }).observe($('gaugeTrack'));
+  new ResizeObserver(() => {
+    if (phase === 'summary' && lastCompare) drawCompare(lastCompare.avgC, game.mode, lastCompare.players, lastCompare.cls);
+  }).observe($('cTrack'));
 }
 
 // Offline support. Service workers need a secure context, so this is skipped on plain http.

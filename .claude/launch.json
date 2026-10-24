@@ -4,6 +4,12 @@
     {
       "name": "pitch-dial",
       "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/wrangler/bin/wrangler.js", "dev", "--port", "8787", "--ip", "127.0.0.1"],
+      "port": 8787
+    },
+    {
+      "name": "pitch-dial-static",
+      "runtimeExecutable": "node",
       "runtimeArgs": ["tools/serve.js"],
       "port": 8080
     }

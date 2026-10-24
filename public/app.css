@@ -168,6 +168,24 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 .g-you-label.edge-r{transform:translateX(-100%)}
 .g-you-label.edge-l{transform:none}
 
+/* sharing and the "How you compare" scale (log scale, 2–200 cents) */
+.share{display:grid;gap:6px}
+.share summary{cursor:pointer;width:max-content}
+.share details p{margin:6px 0 0}
+.compare{display:grid;gap:8px}
+.c-track{position:relative;height:92px;margin-inline:14px}
+.c-track::before{content:"";position:absolute;left:0;right:0;top:28px;height:2px;background:var(--rule)}
+.c-tick{position:absolute;top:25px;width:1px;height:8px;background:var(--muted);transform:translateX(-50%)}
+.c-num{position:absolute;top:44px;transform:translateX(-50%);font:500 10px var(--font-mono);color:var(--muted);white-space:nowrap}
+.c-mark{position:absolute;top:18px;width:2px;height:22px;background:var(--muted);transform:translateX(-50%)}
+.c-mark.players{background:var(--ink);width:3px}
+.c-label{position:absolute;top:60px;transform:translateX(-50%);font:500 11px var(--font-body);color:var(--muted);white-space:nowrap}
+.c-label.players{color:var(--ink);font-weight:700}
+.c-you{position:absolute;top:21px;width:16px;height:16px;border-radius:50%;background:var(--grade);box-shadow:0 0 0 3px var(--panel);transform:translateX(-50%)}
+.c-you-label{position:absolute;top:0;transform:translateX(-50%);font:700 11px var(--font-body);color:var(--grade);white-space:nowrap}
+.c-label.edge-l,.c-you-label.edge-l{transform:none}
+.c-label.edge-r,.c-you-label.edge-r{transform:translateX(-100%)}
+
 /* summary */
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @media (max-width:560px){.tiles{grid-template-columns:minmax(0,1fr)}}

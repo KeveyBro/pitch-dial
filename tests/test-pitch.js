@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import * as maths from '../public/js/maths.js';
 import * as pitch from '../public/js/pitch.js';
 import { INSTRUMENTS, FAMILIES, pickInstrument } from '../public/js/audio.js';
+import { normalizeGame, binOf, binEdges, BIN_COUNT, fractionBelow, quantile, seedAverages, seedBins, comparisonFor, SEED_UNTIL } from '../public/js/community.js';
+import { seedSql } from '../tools/make-seed.js';
 
 const api = { ...maths, ...pitch };
 let fails = 0;
@@ -31,6 +33,60 @@ check('no fold in same octave', fo2.k === 0 && fo2.ref === 196, JSON.stringify(f
   check('every family covers 60–2000 Hz', !bad.length, bad.slice(0, 3).join('; '));
   const brass = [70, 150, 300, 1500].map((f) => pickInstrument('brass', f)).join(', ');
   check('brass runs tuba → trombone → horn → trumpet', brass === 'tuba, trombone, horn, trumpet', brass);
+}
+
+// --- community results: the server's checks and rescoring (public/js/community.js)
+{
+  const base = { v: 1, mode: 'dial', input: null, family: 'brass', listen: 'easy', time: 30, range: 'mid', fold: false,
+    rounds: [[440, 446.2, 'trumpet'], [200, 198, 'horn'], [300, 301, 'horn'], [500, 505, 'trumpet'], [170, 169, 'trombone'], [250, null, 'horn']] };
+  const g = normalizeGame(base);
+  const expect = [[440, 446.2], [200, 198], [300, 301], [500, 505], [170, 169]].map(([t, y]) => 1200 * Math.log2(y / t));
+  const avg = expect.reduce((s, c) => s + Math.abs(c), 0) / expect.length;
+  check('a valid game is rescored by the server', g.ok && g.game.scored === 5 && g.game.missed === 1 && Math.abs(g.game.avgCents - avg) < 0.006 && g.game.rounds[0][3] === 24.22,
+    g.ok ? `avg ${g.game.avgCents}¢ (expected ${avg.toFixed(3)}), first round ${g.game.rounds[0][3]}¢` : g.error);
+  const bad = {
+    'bad mode': { mode: 'piano' },
+    'instrument outside the family': { rounds: [[440, 446.2, 'violin'], ...base.rounds.slice(1)] },
+    'target outside the range': { rounds: [[5000, 446.2, 'trumpet'], ...base.rounds.slice(1)] },
+    'dial answer outside the range': { rounds: [[440, 950, 'trumpet'], ...base.rounds.slice(1)] },
+    'octave folding in dial mode': { fold: true },
+    'too few scored rounds': { rounds: base.rounds.slice(0, 4) },
+    'too many rounds': { rounds: Array(21).fill([440, 441, 'trumpet']) },
+    'unknown format': { v: 2 }
+  };
+  const missed = Object.entries(bad).filter(([, change]) => normalizeGame({ ...base, ...change }).ok).map(([name]) => name);
+  check('the server rejects implausible games', !missed.length, missed.length ? 'accepted: ' + missed.join(', ') : `${Object.keys(bad).length} kinds rejected`);
+  const sung = normalizeGame({ ...base, mode: 'sing', input: 'live', family: 'sine', range: 'low', fold: true,
+    rounds: [[220, 111, 'sine'], [150, 151, 'sine'], [200, 199, 'sine'], [250, 249, 'sine'], [180, 181, 'sine']] });
+  check('octave folding scores a note sung an octave down', sung.ok && Math.abs(sung.game.rounds[0][3] - 1200 * Math.log2(111 / 110)) < 0.01,
+    sung.ok ? `${sung.game.rounds[0][3]}¢` : sung.error);
+}
+// --- community results: the histogram behind the stats
+{
+  let ok = true;
+  for (let c = 0; c < 3000; c += 0.37) { const [a, b] = binEdges(binOf(c)); if (!(c >= a && (c < b || binOf(c) === BIN_COUNT - 1))) ok = false; }
+  for (let i = 1; i < BIN_COUNT; i++) if (binEdges(i)[0] !== binEdges(i - 1)[1]) ok = false;
+  check('every average falls in its own bin, and the bins tile 0–2400¢', ok);
+  const bins = new Array(BIN_COUNT).fill(0);
+  for (let k = 0; k < 2000; k++) bins[binOf(5 + 20 * (k + 0.5) / 2000)]++;   // averages spread evenly over 5–25¢
+  const med = quantile(0.5, bins), below10 = fractionBelow(10, bins);
+  check('median and percentile from the histogram', Math.abs(med - 15) < 0.3 && Math.abs(below10 - 0.25) < 0.01, `median ${med.toFixed(2)}¢, ${(below10 * 100).toFixed(1)}% below 10¢`);
+}
+
+// --- community results: the research seed matches its studies, and is labelled and retired
+{
+  const pct = (a, p) => { const s = a.slice().sort((x, y) => x - y), i = p * (s.length - 1), k = Math.floor(i); return s[k] + (s[Math.min(k + 1, s.length - 1)] - s[k]) * (i - k); };
+  const d = seedAverages('dial'), s = seedAverages('sing');
+  const near = (x, want, tol) => Math.abs(x - want) <= tol;
+  check('dial seed follows 918 adults (5% 6.2¢, median 14.5¢, 95% 77.4¢)', d.length === 50 && near(pct(d, 0.05), 6.2, 0.6) && near(pct(d, 0.5), 14.5, 0.3) && near(pct(d, 0.95), 77.4, 8),
+    `${pct(d, 0.05).toFixed(1)} / ${pct(d, 0.5).toFixed(1)} / ${pct(d, 0.95).toFixed(1)}¢`);
+  check('singing seed follows 50 untrained singers (median 87.8¢, range 2.3–522.1¢)', s.length === 50 && near(pct(s, 0.5), 87.8, 0.3) && Math.min(...s) >= 2.3 && Math.max(...s) <= 522.1,
+    `median ${pct(s, 0.5).toFixed(1)}¢, ${s.filter((c) => c > 100).length} of 50 over a semitone`);
+  check('the seed migration is up to date with tools/make-seed.js', fs.readFileSync('migrations/0002_research_seed.sql', 'utf8') === seedSql());
+  const zero = new Array(BIN_COUNT).fill(0), research = { n: 50, bins: seedBins('dial') };
+  const early = comparisonFor({ modes: { dial: { n: 12, bins: zero }, 'dial:research': research } }, 'dial');
+  const later = comparisonFor({ modes: { dial: { n: SEED_UNTIL, bins: zero }, 'dial:research': research } }, 'dial');
+  check(`research games are pooled until ${SEED_UNTIL} real games, then dropped`, early.n === 62 && early.research === 50 && later.n === SEED_UNTIL && later.research === 0);
 }
 
 // --- recorded samples (public/samples, from tools/build-samples.js): every entry is usable, and no
