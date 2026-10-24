@@ -1,5 +1,5 @@
 // Pitch Dial: game flow, screens and input handlers.
-import { centsBetween, round2, logRandom, unitWord, fractionText, fractionShort, noteLabel, points, grade, describe, foldOctave } from './maths.js';
+import { centsBetween, round2, logRandom, unitWord, fractionParts, fractionText, fractionShort, noteLabel, points, grade, describe, foldOctave } from './maths.js';
 import { FMIN, FMAX, rms, yin, makeTracker, analyzeRecording } from './pitch.js';
 import { INSTRUMENTS, FAMILIES, RANDOM_FAMILIES, pickInstrument, audioContext, ensureAudio, setVolume, playTone, stopShots, startTuner, setTunerFreq, setTunerOn, stopTuner } from './audio.js';
 import { micOpen, openMic, readMic, closeMic } from './mic.js';
@@ -423,10 +423,16 @@ function showSummary() {
   const n = ok.length, misses = rs.length - n;
   if (n) {
     const avgC = ok.reduce((s, r) => s + r.abs, 0) / n;
-    const avgHz = ok.reduce((s, r) => s + Math.abs(r.diff), 0) / n;
+    // each Hz miss is scaled to what it would be at 440 Hz before averaging, since the same
+    // Hz gap is a bigger miss on a low note than on a high one
+    const avgHz = ok.reduce((s, r) => s + Math.abs(r.diff) * 440 / r.ref, 0) / n;
     const best = ok.reduce((b, r) => (r.abs < b.abs ? r : b), ok[0]);
-    $('sAvgHz').textContent = `${avgHz.toFixed(2)} Hz`;
-    $('sAvgTone').textContent = `${fractionText(avgC, unit)} · ${avgC.toFixed(1)} cents` + (misses ? ` · ${misses} round${misses > 1 ? 's' : ''} with no note` : '');
+    const [frac, fracWords] = avgC < 0.01 ? ['Spot on', ''] : fractionParts(avgC, unit);
+    $('sAvgFrac').textContent = frac;
+    $('sAvgFracWords').textContent = fracWords;
+    $('sAvgCents').textContent = avgC.toFixed(1);
+    $('sAvgCentsBox').hidden = false;
+    $('sAvgHz').textContent = `${avgHz.toFixed(2)} Hz at 440 Hz` + (misses ? ` · ${misses} round${misses > 1 ? 's' : ''} with no note` : '');
     $('sBest').textContent = `Round ${best.round}`;
     $('sBestSub').textContent = `${Math.abs(best.diff).toFixed(2)} Hz · ${fractionText(best.abs, unit)}`;
     const prev = store.get(bestKey(game.mode));
@@ -434,8 +440,10 @@ function showSummary() {
     if (isBest) store.set(bestKey(game.mode), { avgCents: avgC, rounds: n });
     $('sPB').hidden = !isBest;
   } else {
-    $('sAvgHz').textContent = '—';
-    $('sAvgTone').textContent = 'No rounds were scored';
+    $('sAvgFrac').textContent = '—';
+    $('sAvgFracWords').textContent = '';
+    $('sAvgCentsBox').hidden = true;
+    $('sAvgHz').textContent = 'No rounds were scored';
     $('sBest').textContent = '—';
     $('sBestSub').textContent = '';
     $('sPB').hidden = true;

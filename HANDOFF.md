@@ -88,6 +88,7 @@ The Sound setting picks a family: Sine, Keyboard, Strings, Woodwinds, Brass, Voi
 - Grades: under 5¢ Excellent, under 15¢ Very close, under 40¢ Close, under 100¢ Off, otherwise Way off.
 - In singing mode with "Count the same note in any octave" on, the reference becomes `target · 2^k`, where `k = round(cents / 1200)`. Hz-off is measured against that octave-shifted reference.
 - Missed or skipped rounds score 0 and are left out of the averages.
+- The summary's Average miss tile leads with the average fraction of a tone and cents. Its Hz figure, in the small text, scales each round to 440 Hz first (`|Hz-off| · 440 / reference`), so a high note's bigger Hz gap doesn't outweigh an equally bad low note, and it's labelled "at 440 Hz". The table and the closest-round tile show raw Hz, since each covers one pitch.
 
 ### Singing detection
 
