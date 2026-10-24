@@ -1,7 +1,9 @@
-// Tests the scoring maths and pitch detection without a browser, using synthetic voices.
+// Tests the scoring maths, pitch detection (using synthetic voices) and instrument ranges
+// without a browser.
 // Usage: node tests/test-pitch.js   (or: npm test)
 import * as maths from '../public/js/maths.js';
 import * as pitch from '../public/js/pitch.js';
+import { INSTRUMENTS, FAMILIES, pickInstrument } from '../public/js/audio.js';
 
 const api = { ...maths, ...pitch };
 let fails = 0;
@@ -14,6 +16,21 @@ const fo = api.foldOctave(218.26, 110.0);
 check('octave fold 218.26 vs sung 110', fo.k === -1 && fo.ref === 109.13, JSON.stringify(fo));
 const fo2 = api.foldOctave(196.0, 196.5);
 check('no fold in same octave', fo2.k === 0 && fo2.ref === 196, JSON.stringify(fo2));
+
+// --- instrument families: every note in the game's 60–2000 Hz range gets a real instrument
+{
+  const bad = [];
+  for (const [fam, parts] of Object.entries(FAMILIES)) {
+    const tops = parts.map(([, top]) => top);
+    if (tops.some((t, i) => i && t <= tops[i - 1]) || tops[tops.length - 1] !== Infinity) bad.push(`${fam}: bands out of order`);
+    for (const [k] of parts) if (!INSTRUMENTS[k]) bad.push(`${fam}: unknown ${k}`);
+  }
+  for (const fam of [...Object.keys(FAMILIES), 'random'])
+    for (let f = 60; f <= 2000; f *= 1.01) if (!INSTRUMENTS[pickInstrument(fam, f)]) bad.push(`${fam} at ${f.toFixed(1)} Hz`);
+  check('every family covers 60–2000 Hz', !bad.length, bad.slice(0, 3).join('; '));
+  const brass = [70, 150, 300, 1500].map((f) => pickInstrument('brass', f)).join(', ');
+  check('brass runs tuba → trombone → horn → trumpet', brass === 'tuba, trombone, horn, trumpet', brass);
+}
 
 // --- synthetic voices
 const SR = 48000;

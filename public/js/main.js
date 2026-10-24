@@ -1,7 +1,7 @@
 // Pitch Dial: game flow, screens and input handlers.
 import { centsBetween, round2, logRandom, unitWord, fractionText, fractionShort, noteLabel, points, grade, describe, foldOctave } from './maths.js';
 import { FMIN, FMAX, rms, yin, makeTracker, analyzeRecording } from './pitch.js';
-import { audioContext, ensureAudio, setVolume, playTone, stopShots, startTuner, setTunerFreq, setTunerOn, stopTuner } from './audio.js';
+import { INSTRUMENTS, FAMILIES, RANDOM_FAMILIES, pickInstrument, audioContext, ensureAudio, setVolume, playTone, stopShots, startTuner, setTunerFreq, setTunerOn, stopTuner } from './audio.js';
 import { micOpen, openMic, readMic, closeMic } from './mic.js';
 import { readTokens, drawDial, drawScope } from './canvas.js';
 
@@ -16,8 +16,8 @@ const store = {
 };
 
 /* ---------- state ---------- */
-const settings = { answer: 'dial', listen: 'easy', tunetime: '30', rounds: '10', range: 'mid', vrange: 'low', unit: '200', octfold: true, volume: 45 };
-const KEYS = ['answer', 'listen', 'tunetime', 'rounds', 'range', 'vrange', 'unit'];
+const settings = { answer: 'dial', listen: 'easy', tunetime: '30', rounds: '10', range: 'mid', vrange: 'low', unit: '200', timbre: 'sine', octfold: true, volume: 45 };
+const KEYS = ['answer', 'listen', 'tunetime', 'rounds', 'range', 'vrange', 'unit', 'timbre'];
 let game = null;
 let flow = 0;           // bumps to cancel stale async steps
 let phase = 'setup';
@@ -51,6 +51,40 @@ function updateModeUI() {
   $('rangeDial').hidden = sing;
   $('rangeVoice').hidden = !sing;
   $('singOpts').hidden = !sing;
+}
+// "Tuba below G2 · Trombone G2–G3 · French horn G3–G4 · Trumpet above G4"
+const noteName = (f) => noteLabel(f).split(' ')[0];
+function updateSoundHelp() {
+  const fam = settings.timbre, parts = FAMILIES[fam];
+  let text;
+  if (fam === 'random') text = 'Each round picks one of the instrument families at random, then the instrument whose range the note sits in.';
+  else if (fam === 'sine' || !parts) text = 'A pure tone with no overtones.';
+  else if (parts.length === 1) text = `${INSTRUMENTS[parts[0][0]].name} across the whole range.`;
+  else {
+    text = parts.map(([k, top], i) => {
+      const name = INSTRUMENTS[k].name;
+      if (i === 0) return `${name} below ${noteName(top)}`;
+      const lo = noteName(parts[i - 1][1]);
+      return top === Infinity ? `${name} above ${lo}` : `${name} ${lo}–⁠${noteName(top)}`; // word joiner: don't wrap "G3–G4"
+    }).join(' · ') + '. Each note is played by the instrument whose range it sits in.';
+  }
+  $('timbreHelp').textContent = text;
+  const test = fam === 'random' ? 'Test sound plays A4 on each family in turn.'
+    : parts && parts.length > 1 ? 'Test sound plays one note on each instrument, low to high.' : 'Test sound plays A4 (440 Hz).';
+  $('testHelp').textContent = `${test} Headphones help, and stop the target bleeding into the microphone.`;
+}
+// Test sound: A4 for a single-sound choice, otherwise one note per instrument (the middle of its
+// band, rounded to a semitone), low to high. Random plays A4 on each family.
+function demoNotes(fam) {
+  if (fam === 'random') return RANDOM_FAMILIES.map((f) => [440, pickInstrument(f, 440)]);
+  const parts = FAMILIES[fam] || FAMILIES.sine;
+  if (parts.length === 1) return [[440, parts[0][0]]];
+  let lo = 60;
+  return parts.map(([k, top]) => {
+    const mid = Math.sqrt(lo * Math.min(top, 2000));
+    lo = top;
+    return [440 * Math.pow(2, Math.round(12 * Math.log2(mid / 440)) / 12), k];
+  });
 }
 function updateExample() {
   const d = describe(440, 446.2, formUnit());
@@ -106,8 +140,9 @@ async function startGame() {
     rounds: Number(settings.rounds) || 10,
     tuneTime: Number(settings.tunetime) || 0,
     listen: settings.listen,
+    family: settings.timbre,
     round: 0, score: 0, results: [],
-    sound: true, target: 0, freq: 0, lastVoiced: 0
+    sound: true, target: 0, inst: 'sine', freq: 0, lastVoiced: 0
   };
   $('coarseLo').textContent = `${lo} Hz`;
   $('coarseHi').textContent = `${hi} Hz`;
@@ -120,7 +155,10 @@ async function nextRound() {
   game.round += 1;
   updateStatus();
   game.target = round2(logRandom(game.lo, game.hi));
-  const dur = LISTEN[game.listen] ?? Math.round((0.6 + Math.random() * 1.9) * 10) / 10;
+  // the whole round (target, dial tone, replays) uses the instrument chosen for the target, so
+  // the dial never switches instrument at a band edge and gives away where the target is
+  game.inst = pickInstrument(game.family, game.target);
+  const dur =LISTEN[game.listen] ?? Math.round((0.6 + Math.random() * 1.9) * 10) / 10;
 
   show('listen');
   const cd = $('countdown'), label = $('listenLabel'), bar = $('listenBar'), scope = $('scope');
@@ -134,8 +172,9 @@ async function nextRound() {
     if (id !== flow) return;
   }
   cd.hidden = true;
-  label.textContent = game.listen === 'hard' ? 'Listen' : `Listen · ${dur} s`;
-  playTone(game.target, dur);
+  const who = game.family === 'sine' ? '' : ` · ${INSTRUMENTS[game.inst].name}`;
+  label.textContent = (game.listen === 'hard' ? 'Listen' : `Listen · ${dur} s`) + who;
+  playTone(game.target, dur, 0, game.inst);
   const t0 = performance.now();
   await new Promise((res) => {
     const step = (t) => {
@@ -162,7 +201,7 @@ function startTune(id) {
   game.freq = f;
   show('tune');
   setSoundButton();
-  startTuner(f, game.sound);
+  startTuner(f, game.sound, game.inst);
   renderTune(false);
   $('face').focus({ preventScroll: true });
 
@@ -283,13 +322,13 @@ function recordResult(you, auto) {
   const d = describe(ref, you, game.unit);
   const pts = points(d.abs);
   game.score += pts;
-  const res = Object.assign({ round: game.round, target: game.target, ref, oct, you, pts, miss: false }, d);
+  const res = Object.assign({ round: game.round, target: game.target, inst: game.inst, ref, oct, you, pts, miss: false }, d);
   game.results.push(res);
   updateStatus();
   showResult(res, auto);
 }
 function recordMiss(auto, skipped) {
-  const res = { round: game.round, target: game.target, miss: true, skipped, pts: 0 };
+  const res = { round: game.round, target: game.target, inst: game.inst, miss: true, skipped, pts: 0 };
   game.results.push(res);
   updateStatus();
   showResult(res, auto);
@@ -299,6 +338,7 @@ function showResult(r, auto) {
   const sing = game.mode === 'sing';
   $('rRound').textContent = `Round ${r.round} of ${game.rounds}`;
   $('rTarget').textContent = r.target.toFixed(2);
+  $('rTargetLabel').textContent = game.family === 'sine' ? 'Target' : `Target · ${INSTRUMENTS[r.inst].name}`;
   $('rYouLabel').textContent = sing ? 'You sang' : 'You';
   $('gauge').hidden = r.miss;
   $('hearYours').disabled = r.miss;
@@ -500,7 +540,7 @@ $('submitBtn').addEventListener('click', () => submit(false));
 /* ---------- input: singing ---------- */
 $('bestBtn').addEventListener('click', () => { if (phase === 'sing') finishSing(tracker.best(), false); });
 $('skipBtn').addEventListener('click', () => { if (phase === 'sing') { flow++; recordMiss(false, true); } });
-$('hearAgain').addEventListener('click', () => { if (game && phase === 'sing') { stopShots(); playTone(game.target, 1.5); } });
+$('hearAgain').addEventListener('click', () => { if (game && phase === 'sing') { stopShots(); playTone(game.target, 1.5, 0, game.inst); } });
 $('uploadInput').addEventListener('change', async (e) => {
   const input = e.target;
   const file = input.files && input.files[0];
@@ -535,9 +575,9 @@ $('nextBtn').addEventListener('click', () => {
   if (game.round >= game.rounds) showSummary(); else nextRound();
 });
 const last = () => game && game.results[game.results.length - 1];
-$('hearTarget').addEventListener('click', () => { const r = last(); if (!r) return; stopShots(); playTone(r.target, 1); });
-$('hearYours').addEventListener('click', () => { const r = last(); if (!r || r.miss) return; stopShots(); playTone(r.you, 1); });
-$('hearBoth').addEventListener('click', () => { const r = last(); if (!r || r.miss) return; stopShots(); playTone(r.target, 0.9); playTone(r.you, 0.9, 1.15); });
+$('hearTarget').addEventListener('click', () => { const r = last(); if (!r) return; stopShots(); playTone(r.target, 1, 0, r.inst); });
+$('hearYours').addEventListener('click', () => { const r = last(); if (!r || r.miss) return; stopShots(); playTone(r.you, 1, 0, r.inst); });
+$('hearBoth').addEventListener('click', () => { const r = last(); if (!r || r.miss) return; stopShots(); playTone(r.target, 0.9, 0, r.inst); playTone(r.you, 0.9, 1.15, r.inst); });
 
 $('endBtn').addEventListener('click', () => {
   flow++;
@@ -551,7 +591,7 @@ $('setupForm').addEventListener('submit', (e) => { e.preventDefault(); startGame
 $('setupForm').addEventListener('change', () => {
   readForm();
   store.set('pitchdial.settings', settings);
-  updateModeUI(); updateExample(); updateBestLine();
+  updateModeUI(); updateSoundHelp(); updateExample(); updateBestLine();
 });
 $('volume').addEventListener('input', () => {
   settings.volume = Number($('volume').value);
@@ -559,16 +599,22 @@ $('volume').addEventListener('input', () => {
 });
 $('testBtn').addEventListener('click', () => {
   if (!ensureAudio()) { $('audioError').hidden = false; return; }
-  stopShots(); playTone(440, 0.7);
+  stopShots();
+  demoNotes(settings.timbre).forEach(([f, inst], i) => playTone(f, 0.6, i * 0.75, inst));
 });
 
 /* ---------- boot ---------- */
 const saved = store.get('pitchdial.settings');
-if (saved && typeof saved === 'object') KEYS.concat('volume', 'octfold').forEach((k) => { if (saved[k] != null) settings[k] = saved[k]; });
+if (saved && typeof saved === 'object') KEYS.concat('volume', 'octfold').forEach((k) => {
+  if (saved[k] == null) return;
+  if (KEYS.includes(k) && !document.querySelector(`input[name="${k}"][value="${saved[k]}"]`)) return; // an option that no longer exists
+  settings[k] = saved[k];
+});
 applyForm();
 readForm();
 readTokens();
 updateModeUI();
+updateSoundHelp();
 updateExample();
 updateBestLine();
 

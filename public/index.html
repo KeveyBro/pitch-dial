@@ -110,12 +110,26 @@
           <p class="help">A whole tone is two piano keys (200 cents). A semitone is one key (100 cents).</p>
         </fieldset>
         <fieldset>
+          <legend class="eyebrow">Sound</legend>
+          <div class="seg">
+            <label><input type="radio" name="timbre" id="timbre-sine" value="sine"><span>Sine</span></label>
+            <label><input type="radio" name="timbre" id="timbre-keyboard" value="keyboard"><span>Keyboard</span></label>
+            <label><input type="radio" name="timbre" id="timbre-strings" value="strings"><span>Strings</span></label>
+            <label><input type="radio" name="timbre" id="timbre-woodwinds" value="woodwinds"><span>Woodwinds</span></label>
+            <label><input type="radio" name="timbre" id="timbre-brass" value="brass"><span>Brass</span></label>
+            <label><input type="radio" name="timbre" id="timbre-voices" value="voices"><span>Voices</span></label>
+            <label><input type="radio" name="timbre" id="timbre-percussion" value="percussion"><span>Percussion</span></label>
+            <label><input type="radio" name="timbre" id="timbre-random" value="random"><span>Random</span></label>
+          </div>
+          <p class="help" id="timbreHelp"></p>
+        </fieldset>
+        <fieldset>
           <legend class="eyebrow">Volume</legend>
           <div class="vol">
             <input type="range" id="volume" min="0" max="100" step="1" value="45" aria-label="Volume">
             <button class="btn slim" type="button" id="testBtn">Test sound</button>
           </div>
-          <p class="help">Test sound plays A4 (440 Hz). Headphones help, and stop the target bleeding into the microphone.</p>
+          <p class="help" id="testHelp">Test sound plays A4 (440 Hz). Headphones help, and stop the target bleeding into the microphone.</p>
         </fieldset>
       </div>
       <div class="actions"><button class="btn primary" type="submit" id="startBtn">Start game</button></div>
@@ -204,7 +218,7 @@
       <span class="small muted" id="rRound">Round 1 of 10</span>
     </div>
     <div class="pair">
-      <div><span class="eyebrow">Target</span><span class="val"><span id="rTarget">440.00</span> <small>Hz</small></span></div>
+      <div><span class="eyebrow" id="rTargetLabel">Target</span><span class="val"><span id="rTarget">440.00</span> <small>Hz</small></span></div>
       <div><span class="eyebrow" id="rYouLabel">You</span><span class="val"><span id="rYou">446.20</span> <small>Hz</small></span></div>
     </div>
     <div class="verdict" role="status">

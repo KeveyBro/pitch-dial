@@ -54,11 +54,31 @@ The modules have one job each, and only `main.js` touches the DOM outside the ca
 
 1. **maths.js**: `centsBetween`, `round2`, `logRandom`, `unitWord`, `fractionText` (the "≈ 1/x of a tone" wording), `fractionShort`, `noteLabel`, `points`, `grade`, `describe`, `foldOctave`, `NAMES`.
 2. **pitch.js**: `FMIN`/`FMAX` (60–1100 Hz), `rms`, `yin(buf, sr)` (threshold 0.15, parabolic interpolation), `medianOf`, `makeTracker()`, `analyzeRecording(audioBuffer)`.
-3. **audio.js**: a shared `AudioContext` and master gain. `playTone` handles one-shot tones, and `startTuner(freq, on)`/`setTunerFreq`/`setTunerOn`/`stopTuner` handle the dial's continuous tone. `setVolume(0–1)` maps volume as `0.5 × v²`. `audioContext()` returns the context, or null before the first `ensureAudio()`.
+3. **audio.js**: a shared `AudioContext` and master gain. `playTone(freq, dur, delay, inst)` handles one-shot tones, and `startTuner(freq, on, inst)`/`setTunerFreq`/`setTunerOn`/`stopTuner` handle the dial's continuous tone. `INSTRUMENTS`, `FAMILIES` and `pickInstrument(family, freq)` define the sounds (see "Sound families" below). `buildNote(ctx, inst, freq, dest)` builds one note in any context, including an `OfflineAudioContext`, which is how the loudness was measured. `setVolume(0–1)` maps volume as `0.5 × v²`. `audioContext()` returns the context, or null before the first `ensureAudio()`.
 4. **mic.js**: `openMic` (needs `ensureAudio()` first), `readMic` (the latest frame, in a reused buffer), `micOpen`, `closeMic`. Echo cancellation, noise suppression and AGC are turned off. The analyser is connected to a zero-gain sink so it keeps processing.
 5. **canvas.js**: `readTokens` reads the CSS colour tokens so the canvases follow the theme. `drawDial(canvas, freq, lo, hi, dim)` draws the amber dial at 1 px = 1 cent, with semitone ticks labelled with note name and Hz. `drawScope(canvas, t, amp)` draws the listen-screen wave.
 6. **main.js, game flow**: phases are `setup → listen → tune | sing → result → … → summary`. Each async step captures `flow` and stops if it has changed; anything that leaves a phase does `flow++`.
 7. **main.js, input handlers**: the dial (drag, wheel, keys, coarse slider, hold-to-repeat nudge buttons), singing (live loop, upload, skip, best attempt) and the setup form.
+
+### Sound families
+
+The Sound setting picks a family: Sine, Keyboard, Strings, Woodwinds, Brass, Voices, Percussion or Random. Within a family, each note goes to the instrument whose range it sits in, so every family covers the game's 60–2000 Hz:
+
+| Family | Instruments, low to high (band edges) |
+|---|---|
+| Keyboard | Piano across the whole range |
+| Strings | Double bass < G2 (98 Hz) · Cello < A3 (220) · Viola < G4 (392) · Violin |
+| Woodwinds | Bassoon < E3 (165) · Clarinet < G4 (392) · Oboe < G5 (784) · Flute |
+| Brass | Tuba < G2 (98) · Trombone < G3 (196) · French horn < G4 (392) · Trumpet |
+| Voices | Bass < D3 (147) · Tenor < C4 (262) · Alto < A4 (440) · Soprano |
+| Percussion | Marimba < C5 (523) · Xylophone < C6 (1047) · Glockenspiel |
+| Random | A random family (never Sine) for each round |
+
+- The instrument is picked once per round from the target. The dial tone and all the Hear buttons in that round use it too, so the dial never changes instrument at a band edge and gives away where the target is. The listen screen and the result's Target label name the instrument.
+- Every instrument is a harmonic spectrum (a `PeriodicWave`), so the waveform repeats at the fundamental and the pitch is exactly the target, even where the 2nd harmonic is the loudest. Voices add fixed "ah" formants (Csound formant tables). Percussion strikes, then settles to a long ring at 65% of the peak, so it stays audible for the whole listen time. (A mallet-roll tremolo was tried and dropped: the player preferred a plain sustained ring.) In Chromium, YIN read every instrument within 0.33¢ of the target.
+- Loudness was measured with an `OfflineAudioContext` across each instrument's band. Steady tones sit 1.5 dB under the sine's RMS at the same pitch. Struck tones (piano, percussion) sustain 5 dB under it. No gain lets the peak pass 0.95 at full volume.
+- Test sound plays one note per instrument, low to high. With Random it plays A4 in each family.
+- These are synthesised approximations: no vibrato, breath noise or inharmonic partials, because those would blur the pitch. A real ear-check of each sound is still to do.
 
 ### Scoring rules
 
@@ -78,7 +98,7 @@ The modules have one job each, and only `main.js` touches the DOM outside the ca
 
 ### Storage (localStorage, every access wrapped in try/catch)
 
-- `pitchdial.settings`: answer mode, listen time, time limit, rounds, ranges, unit, octave fold and volume.
+- `pitchdial.settings`: answer mode, listen time, time limit, rounds, ranges, unit, sound family (`timbre`), octave fold and volume. A saved value that no longer matches an option falls back to the default.
 - `pitchdial.best` and `pitchdial.best.sing`: `{avgCents, rounds}`, the best average for each mode. A best is only recorded for games with at least 5 scored rounds.
 - Storage is per origin, so each deployment (and `localhost`) keeps its own settings and bests, separate from the old artifact and standalone file.
 
@@ -111,5 +131,5 @@ First dial game (5 rounds, mostly low targets of 158–492 Hz): average miss **1
 3. Put the research benchmarks on the summary as markers on a scale, so the player sees where their average falls.
 4. Split results by frequency band (below 250 Hz vs above), because low notes are harder.
 5. Add a history across games (per-viewer localStorage) with a small trend chart.
-6. Offer an optional sung-vowel or complex timbre for the target, since a pure sine is hard to sing back.
+6. Done: instrument families (see "Sound families"). Next, consider showing the instrument in the summary table, and splitting bests by family, since some timbres may be easier to match than others.
 7. Self-host the two font files if you want no third-party requests (for privacy, or a stricter CSP).
