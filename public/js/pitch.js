@@ -3,10 +3,11 @@
 export const FMIN = 60, FMAX = 1100;
 
 export function rms(buf) { let s = 0; for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i]; return Math.sqrt(s / buf.length); }
-export function yin(buf, sr, thresh = 0.15) {
+// fmin/fmax default to the game's singing range; tools/build-samples.js widens them for instruments
+export function yin(buf, sr, thresh = 0.15, fmin = FMIN, fmax = FMAX) {
   const W = Math.floor(buf.length / 2);
-  const tauMin = Math.max(2, Math.floor(sr / FMAX));
-  const tauMax = Math.min(W - 2, Math.ceil(sr / FMIN));
+  const tauMin = Math.max(2, Math.floor(sr / fmax));
+  const tauMax = Math.min(W - 2, Math.ceil(sr / fmin));
   const c = new Float32Array(tauMax + 2);
   c[0] = 1;
   let run = 0;

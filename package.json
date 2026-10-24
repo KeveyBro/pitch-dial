@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "node tools/serve.js",
     "test": "node tests/test-pitch.js",
-    "icons": "node tools/make-icons.js"
+    "icons": "node tools/make-icons.js",
+    "samples": "node tools/build-samples.js"
   }
 }

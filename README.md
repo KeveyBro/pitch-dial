@@ -42,6 +42,12 @@ The app uses relative paths, so it works at a domain root or under a subpath suc
 | `public/sw.js` | Service worker for offline use. |
 | `tools/serve.js` | Dev server. It applies `public/_headers` so you test with the production CSP. |
 | `tools/make-icons.js` | Regenerates `public/icons/` (`npm run icons`). |
+| `public/samples/` | Recorded instrument notes, about 5.6 MB in all. Each family loads only when it's picked. |
+| `tools/build-samples.js` | Rebuilds `public/samples/` (`npm run samples`). It downloads about 270 MB of source recordings into a temp folder the first time. |
 | `tests/test-pitch.js` | Headless tests. |
 
 `HANDOFF.md` has the design notes, the scoring and detection rules, and the research benchmarks.
+
+## Credits
+
+Instrument recordings come from [VSCO 2 Community Edition](https://versilian-studios.com/vsco-community/) by Versilian Studios, released under CC0 (public domain).
