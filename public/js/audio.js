@@ -1,6 +1,7 @@
 // Audio out: one shared AudioContext and master gain. playTone handles one-shot tones;
 // startTuner / setTunerFreq / setTunerOn / stopTuner handle the dial's continuous tone.
-// Both take an instrument key from INSTRUMENTS (pickInstrument chooses one for a note).
+// Both take an instrument key from INSTRUMENTS (pickInstrument chooses one for a note), and play
+// its recordings once loadSamples has loaded them, or its synth voice until then.
 let actx = null, master = null, tuner = null;
 let volume = 0.45;
 const shots = new Set();
@@ -41,13 +42,14 @@ export const INSTRUMENTS = {
 
 // Families, each listed low to high as [instrument, top of its band in Hz]. A note is played by
 // the first instrument whose band it falls below, so every family covers the game's 60–2000 Hz.
-// The band edges are notes (G2 = 98 Hz, etc.) inside each instrument's real range.
+// The band edges are notes (G2 = 98 Hz, etc.) inside each instrument's real range. Horn hands over
+// to trumpet at D♯4 because the recorded horn (public/samples) has nothing between C4 and D5.
 export const FAMILIES = {
   sine:       [['sine', Infinity]],
   keyboard:   [['piano', Infinity]],
   strings:    [['doubleBass', 98], ['cello', 220], ['viola', 392], ['violin', Infinity]],
   woodwinds:  [['bassoon', 164.81], ['clarinet', 392], ['oboe', 783.99], ['flute', Infinity]],
-  brass:      [['tuba', 98], ['trombone', 196], ['horn', 392], ['trumpet', Infinity]],
+  brass:      [['tuba', 98], ['trombone', 196], ['horn', 311.13], ['trumpet', Infinity]],
   voices:     [['bass', 146.83], ['tenor', 261.63], ['alto', 440], ['soprano', Infinity]],
   percussion: [['marimba', 523.25], ['xylophone', 1046.5], ['glockenspiel', Infinity]]
 };
@@ -58,7 +60,43 @@ export function pickInstrument(family, freq) {
   const parts = FAMILIES[family] || FAMILIES.sine;
   return parts.find(([, top]) => freq < top)[0];
 }
+export function familyInstruments(family) {
+  const fams = family === 'random' ? RANDOM_FAMILIES : [FAMILIES[family] ? family : 'sine'];
+  return fams.flatMap((f) => FAMILIES[f].map(([k]) => k));
+}
 const holdLevel = (t) => t.gain * (t.decay ? t.decay.to : 1);
+
+// Recorded instruments: public/samples (built by tools/build-samples.js) holds short recordings
+// with measured pitches and seamless loops. loadSamples fetches and decodes an instrument's set;
+// until it arrives, or if it fails, the instrument plays its synth voice above.
+const samples = {}, loading = {};
+let indexReq = null, decoder = null;
+const sampleIndex = () => indexReq || (indexReq = fetch('samples/index.json')
+  .then((r) => (r.ok ? r.json() : { instruments: {} })).catch(() => ({ instruments: {} })));
+const decode = (ab) => new Promise((res, rej) => {
+  const p = decoder.decodeAudioData(ab, res, rej);
+  if (p && typeof p.then === 'function') p.then(res, rej);
+});
+export function loadSamples(keys) {
+  return Promise.all(keys.map((k) => loading[k] || (loading[k] = sampleIndex().then(async (idx) => {
+    const list = idx.instruments[k];
+    if (!list || !list.length) return;
+    // an OfflineAudioContext decodes without needing a user gesture, unlike the live context
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!decoder) decoder = new OAC(1, 1, idx.sampleRate || 22050);
+    const set = await Promise.all(list.map(async (s) => {
+      const res = await fetch('samples/' + s.file);
+      if (!res.ok) throw new Error(s.file);
+      return { ...s, buffer: await decode(await res.arrayBuffer()) };
+    }));
+    samples[k] = set.sort((a, b) => a.f0 - b.f0);
+  }).catch(() => { delete loading[k]; }))));   // a failed load can be retried later
+}
+function nearestSample(set, freq) {
+  let best = set[0];
+  for (const s of set) if (Math.abs(Math.log(freq / s.f0)) < Math.abs(Math.log(freq / best.f0))) best = s;
+  return best;
+}
 
 export const audioContext = () => actx;
 
@@ -69,7 +107,11 @@ export function ensureAudio() {
     try { actx = new AC(); } catch (e) { return false; }
     master = actx.createGain();
     master.gain.value = volGain();
-    master.connect(actx.destination);
+    // a peak limiter: silent at normal volumes, it stops loud recordings clipping near full volume
+    const limiter = actx.createDynamicsCompressor();
+    limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20;
+    limiter.attack.value = 0.002; limiter.release.value = 0.15;
+    master.connect(limiter); limiter.connect(actx.destination);
   }
   if (actx.state === 'suspended') actx.resume();
   return true;
@@ -82,6 +124,8 @@ export function setVolume(v) {
 
 // Builds one note of an instrument in any context (an OfflineAudioContext works too) and connects
 // it to dest. The caller drives `env.gain` (it starts at 0), calls start/stop, then dispose().
+// `t` describes the envelope: gain, attack and optional decay. A recording carries its own attack
+// and decay, so a sampled note only gets a 5 ms fade-in at its measured gain.
 const waves = new WeakMap();
 function wave(ctx, key, coeffs) {
   if (!waves.has(ctx)) waves.set(ctx, {});
@@ -92,7 +136,24 @@ function wave(ctx, key, coeffs) {
   }
   return cache[key];
 }
-export function buildNote(ctx, key, freq, dest) {
+export function buildNote(ctx, key, freq, dest, sample = samples[key] && nearestSample(samples[key], freq)) {
+  if (sample) {
+    // the recording nearest in pitch, sped up or slowed down to exactly `freq`, then looped
+    const o = ctx.createBufferSource();
+    o.buffer = sample.buffer;
+    o.loop = true; o.loopStart = sample.loopStart; o.loopEnd = sample.loopEnd;
+    o.playbackRate.value = freq / sample.f0;
+    const env = ctx.createGain();
+    env.gain.value = 0;
+    o.connect(env); env.connect(dest);
+    return {
+      o, env, sample, t: { gain: sample.gain, attack: 0.005 },
+      setFreq: (f, at, tc) => o.playbackRate.setTargetAtTime(f / sample.f0, at, tc),
+      start: (at, from = 0) => o.start(at, from),
+      stop: (at) => { try { o.stop(at); } catch (e) {} },
+      dispose: () => { try { env.disconnect(); } catch (e) {} }
+    };
+  }
   const t = INSTRUMENTS[key] || INSTRUMENTS.sine;
   const o = ctx.createOscillator();
   if (t.harmonics.length === 1) o.type = 'sine';
@@ -116,6 +177,7 @@ export function buildNote(ctx, key, freq, dest) {
   env.connect(dest);
   return {
     o, env, t,
+    setFreq: (f, at, tc) => o.frequency.setTargetAtTime(f, at, tc),
     start: (at) => o.start(at),
     stop: (at) => { try { o.stop(at); } catch (e) {} },
     dispose: () => nodes.forEach((n) => { try { n.disconnect(); } catch (e) {} })
@@ -157,19 +219,44 @@ export function startTuner(freq, on, inst = 'sine') {
     env.gain.linearRampToValueAtTime(t.gain, now + att);
     env.gain.setTargetAtTime(holdLevel(t), now + att, t.decay ? t.decay.tau : 0.03);
   }
-  tuner = v;
+  tuner = { v, inst, on };
 }
-export function setTunerFreq(f) { if (tuner) tuner.o.frequency.setTargetAtTime(f, actx.currentTime, 0.012); }
-export function setTunerOn(on) { if (tuner) tuner.env.gain.setTargetAtTime(on ? holdLevel(tuner.t) : 0, actx.currentTime, 0.03); }
-export function stopTuner() {
-  if (!tuner) return;
-  const v = tuner;
-  tuner = null;
+const cents = (a, b) => 1200 * Math.log2(a / b);
+function fadeOut(v, tc = 0.02) {
   try {
     const now = actx.currentTime;
     v.env.gain.cancelScheduledValues(now);
-    v.env.gain.setTargetAtTime(0, now, 0.02);
+    v.env.gain.setTargetAtTime(0, now, tc);
   } catch (e) {}
-  v.stop(actx.currentTime + 0.15);
+  v.stop(actx.currentTime + 8 * tc);
   v.o.onended = v.dispose;
+}
+export function setTunerFreq(f) {
+  if (!tuner) return;
+  const { v } = tuner, now = actx.currentTime;
+  if (v.sample) {
+    // stretching one recording far from its pitch sounds unnatural, so once another recording is
+    // more than a semitone closer, crossfade to it, joining it in its loop (past its attack)
+    const best = nearestSample(samples[tuner.inst], f);
+    if (best !== v.sample && Math.abs(cents(f, v.sample.f0)) - Math.abs(cents(f, best.f0)) > 100) {
+      const w = buildNote(actx, tuner.inst, f, master, best);
+      w.start(now, best.loopStart);
+      w.env.gain.setTargetAtTime(tuner.on ? w.t.gain : 0, now, 0.02);
+      fadeOut(v);
+      tuner.v = w;
+      return;
+    }
+  }
+  v.setFreq(f, now, 0.012);
+}
+export function setTunerOn(on) {
+  if (!tuner) return;
+  tuner.on = on;
+  tuner.v.env.gain.setTargetAtTime(on ? holdLevel(tuner.v.t) : 0, actx.currentTime, 0.03);
+}
+export function stopTuner() {
+  if (!tuner) return;
+  const { v } = tuner;
+  tuner = null;
+  fadeOut(v);
 }

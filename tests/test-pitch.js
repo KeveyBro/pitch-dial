@@ -1,6 +1,7 @@
 // Tests the scoring maths, pitch detection (using synthetic voices) and instrument ranges
 // without a browser.
 // Usage: node tests/test-pitch.js   (or: npm test)
+import fs from 'node:fs';
 import * as maths from '../public/js/maths.js';
 import * as pitch from '../public/js/pitch.js';
 import { INSTRUMENTS, FAMILIES, pickInstrument } from '../public/js/audio.js';
@@ -30,6 +31,33 @@ check('no fold in same octave', fo2.k === 0 && fo2.ref === 196, JSON.stringify(f
   check('every family covers 60–2000 Hz', !bad.length, bad.slice(0, 3).join('; '));
   const brass = [70, 150, 300, 1500].map((f) => pickInstrument('brass', f)).join(', ');
   check('brass runs tuba → trombone → horn → trumpet', brass === 'tuba, trombone, horn, trumpet', brass);
+}
+
+// --- recorded samples (public/samples, from tools/build-samples.js): every entry is usable, and no
+// note in an instrument's band is more than a few semitones from a recording. Two known stretches:
+// the library's lowest marimba note is F2 (87 Hz), and its highest trumpet note is C6 (1047 Hz).
+if (fs.existsSync('public/samples/index.json')) {
+  const idx = JSON.parse(fs.readFileSync('public/samples/index.json', 'utf8'));
+  const bad = [], LIMIT = { marimba: 7, trumpet: 12 };
+  for (const [k, set] of Object.entries(idx.instruments)) {
+    if (!INSTRUMENTS[k]) bad.push(`${k}: not an instrument`);
+    for (const s of set) {
+      if (!fs.existsSync('public/samples/' + s.file)) bad.push(`${s.file}: missing`);
+      if (!(s.f0 > 20 && s.loopStart < s.loopEnd && s.gain > 0 && s.gain <= 3)) bad.push(`${s.file}: bad values`);
+    }
+  }
+  for (const parts of Object.values(FAMILIES)) {
+    let lo = 60;
+    for (const [k, top] of parts) {
+      const set = idx.instruments[k];
+      if (set) for (let f = lo; f <= Math.min(top, 2000); f *= 1.01) {
+        const d = Math.min(...set.map((s) => Math.abs(12 * Math.log2(f / s.f0))));
+        if (d > (LIMIT[k] || 4)) { bad.push(`${k} at ${f.toFixed(0)} Hz is ${d.toFixed(1)} semitones from a recording`); break; }
+      }
+      lo = top;
+    }
+  }
+  check(`${Object.keys(idx.instruments).length} sampled instruments cover their bands`, !bad.length, bad.slice(0, 3).join('; '));
 }
 
 // --- synthetic voices

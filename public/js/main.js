@@ -1,7 +1,7 @@
 // Pitch Dial: game flow, screens and input handlers.
 import { centsBetween, round2, logRandom, unitWord, fractionText, fractionShort, noteLabel, points, grade, describe, foldOctave } from './maths.js';
 import { FMIN, FMAX, rms, yin, makeTracker, analyzeRecording } from './pitch.js';
-import { INSTRUMENTS, FAMILIES, RANDOM_FAMILIES, pickInstrument, audioContext, ensureAudio, setVolume, playTone, stopShots, startTuner, setTunerFreq, setTunerOn, stopTuner } from './audio.js';
+import { INSTRUMENTS, FAMILIES, RANDOM_FAMILIES, pickInstrument, familyInstruments, loadSamples, audioContext, ensureAudio, setVolume, playTone, stopShots, startTuner, setTunerFreq, setTunerOn, stopTuner } from './audio.js';
 import { micOpen, openMic, readMic, closeMic } from './mic.js';
 import { readTokens, drawDial, drawScope } from './canvas.js';
 
@@ -68,6 +68,9 @@ function updateSoundHelp() {
       return top === Infinity ? `${name} above ${lo}` : `${name} ${lo}–⁠${noteName(top)}`; // word joiner: don't wrap "G3–G4"
     }).join(' · ') + '. Each note is played by the instrument whose range it sits in.';
   }
+  if (fam === 'voices') text += ' The voices are synthesised.';
+  else if (fam === 'random') text += ' Voices are synthesised; the other families are recordings.';
+  else if (fam !== 'sine') text += ' Recorded instruments from VSCO 2 Community Edition.';
   $('timbreHelp').textContent = text;
   const test = fam === 'random' ? 'Test sound plays A4 on each family in turn.'
     : parts && parts.length > 1 ? 'Test sound plays one note on each instrument, low to high.' : 'Test sound plays A4 (440 Hz).';
@@ -114,11 +117,26 @@ function setTimer(boxId, barId, textId, total, end) {
   return left;
 }
 
+// Waits for a family's recordings, showing "Loading sounds…" on the buttons if that takes more than
+// a moment. After 8 s it gives up waiting; anything still missing plays its synth voice.
+async function readySounds(fam, btns, label) {
+  let done = false;
+  const p = loadSamples(familyInstruments(fam)).then(() => { done = true; });
+  await Promise.race([p, wait(100)]);
+  if (done) return;
+  const text = btns.map((b) => b.textContent);
+  btns.forEach((b) => { b.disabled = true; });
+  label.textContent = 'Loading sounds…';
+  await Promise.race([p, wait(8000)]);
+  btns.forEach((b, i) => { b.disabled = false; b.textContent = text[i]; });
+}
+
 /* ---------- game flow ---------- */
 async function startGame() {
   readForm();
   store.set('pitchdial.settings', settings);
   if (!ensureAudio()) { $('audioError').hidden = false; return; }
+  await readySounds(settings.timbre, [$('startBtn'), $('againBtn')], $('startBtn'));
   const sing = settings.answer === 'sing';
   const [lo, hi] = sing ? (VRANGES[settings.vrange] || VRANGES.low) : (RANGES[settings.range] || RANGES.mid);
   let micMode = null;
@@ -592,15 +610,18 @@ $('setupForm').addEventListener('change', () => {
   readForm();
   store.set('pitchdial.settings', settings);
   updateModeUI(); updateSoundHelp(); updateExample(); updateBestLine();
+  loadSamples(familyInstruments(settings.timbre));   // start fetching as soon as a family is picked
 });
 $('volume').addEventListener('input', () => {
   settings.volume = Number($('volume').value);
   setVolume(settings.volume / 100);
 });
-$('testBtn').addEventListener('click', () => {
+$('testBtn').addEventListener('click', async () => {
   if (!ensureAudio()) { $('audioError').hidden = false; return; }
   stopShots();
-  demoNotes(settings.timbre).forEach(([f, inst], i) => playTone(f, 0.6, i * 0.75, inst));
+  const fam = settings.timbre;
+  await readySounds(fam, [$('testBtn')], $('testBtn'));
+  if (fam === settings.timbre && phase === 'setup') demoNotes(fam).forEach(([f, inst], i) => playTone(f, 0.6, i * 0.75, inst));
 });
 
 /* ---------- boot ---------- */
@@ -617,6 +638,7 @@ updateModeUI();
 updateSoundHelp();
 updateExample();
 updateBestLine();
+loadSamples(familyInstruments(settings.timbre));
 
 const redraw = () => {
   readTokens();

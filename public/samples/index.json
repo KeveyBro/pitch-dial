@@ -1,0 +1,731 @@
+{
+ "source": "VSCO 2 Community Edition by Versilian Studios, CC0 (public domain): https://versilian-studios.com/vsco-community/",
+ "sampleRate": 22050,
+ "instruments": {
+  "piano": [
+   {
+    "file": "piano/G1.wav",
+    "f0": 48.984,
+    "loopStart": 0.74127,
+    "loopEnd": 1.23243,
+    "gain": 2.507
+   },
+   {
+    "file": "piano/C2.wav",
+    "f0": 65.147,
+    "loopStart": 0.42721,
+    "loopEnd": 0.9341,
+    "gain": 2.355
+   },
+   {
+    "file": "piano/G2.wav",
+    "f0": 98.428,
+    "loopStart": 0.34494,
+    "loopEnd": 0.84316,
+    "gain": 2.239
+   },
+   {
+    "file": "piano/C3.wav",
+    "f0": 130.973,
+    "loopStart": 0.65764,
+    "loopEnd": 1.15394,
+    "gain": 2.932
+   },
+   {
+    "file": "piano/G3.wav",
+    "f0": 196.362,
+    "loopStart": 0.29637,
+    "loopEnd": 0.79544,
+    "gain": 1.855
+   },
+   {
+    "file": "piano/C4.wav",
+    "f0": 261.151,
+    "loopStart": 0.5329,
+    "loopEnd": 1.03449,
+    "gain": 2.24
+   },
+   {
+    "file": "piano/G4.wav",
+    "f0": 394.105,
+    "loopStart": 0.17562,
+    "loopEnd": 0.67592,
+    "gain": 3
+   },
+   {
+    "file": "piano/C5.wav",
+    "f0": 524.198,
+    "loopStart": 0.16068,
+    "loopEnd": 0.66046,
+    "gain": 2.572
+   },
+   {
+    "file": "piano/G5.wav",
+    "f0": 783.991,
+    "loopStart": 0.18168,
+    "loopEnd": 0.68148,
+    "gain": 2.835
+   },
+   {
+    "file": "piano/C6.wav",
+    "f0": 1049.8,
+    "loopStart": 0.12184,
+    "loopEnd": 0.62215,
+    "gain": 3
+   },
+   {
+    "file": "piano/G6.wav",
+    "f0": 1570.496,
+    "loopStart": 0.12213,
+    "loopEnd": 0.62224,
+    "gain": 3
+   },
+   {
+    "file": "piano/C7.wav",
+    "f0": 2103.911,
+    "loopStart": 0.12127,
+    "loopEnd": 0.62118,
+    "gain": 3
+   }
+  ],
+  "doubleBass": [
+   {
+    "file": "doubleBass/As1.wav",
+    "f0": 58.275,
+    "loopStart": 0.51,
+    "loopEnd": 1.50519,
+    "gain": 1.273
+   },
+   {
+    "file": "doubleBass/C2.wav",
+    "f0": 65.391,
+    "loopStart": 0.51,
+    "loopEnd": 1.50421,
+    "gain": 1.386
+   },
+   {
+    "file": "doubleBass/D2.wav",
+    "f0": 73.402,
+    "loopStart": 0.50202,
+    "loopEnd": 1.49648,
+    "gain": 1.245
+   },
+   {
+    "file": "doubleBass/E2.wav",
+    "f0": 82.395,
+    "loopStart": 0.50342,
+    "loopEnd": 1.49862,
+    "gain": 1.574
+   },
+   {
+    "file": "doubleBass/Fs2.wav",
+    "f0": 92.47,
+    "loopStart": 0.51,
+    "loopEnd": 1.50486,
+    "gain": 1.333
+   },
+   {
+    "file": "doubleBass/Gs2.wav",
+    "f0": 103.801,
+    "loopStart": 0.51,
+    "loopEnd": 1.51171,
+    "gain": 1.099
+   }
+  ],
+  "cello": [
+   {
+    "file": "cello/G2.wav",
+    "f0": 97.975,
+    "loopStart": 0.51,
+    "loopEnd": 1.51051,
+    "gain": 1.902
+   },
+   {
+    "file": "cello/B2.wav",
+    "f0": 123.381,
+    "loopStart": 0.50429,
+    "loopEnd": 1.50095,
+    "gain": 1.67
+   },
+   {
+    "file": "cello/D3.wav",
+    "f0": 146.816,
+    "loopStart": 0.50524,
+    "loopEnd": 1.50614,
+    "gain": 2.348
+   },
+   {
+    "file": "cello/F3.wav",
+    "f0": 174.878,
+    "loopStart": 0.5012,
+    "loopEnd": 1.50057,
+    "gain": 2.368
+   },
+   {
+    "file": "cello/A3.wav",
+    "f0": 219.934,
+    "loopStart": 0.51,
+    "loopEnd": 1.5109,
+    "gain": 1.858
+   },
+   {
+    "file": "cello/C4.wav",
+    "f0": 262.634,
+    "loopStart": 0.50315,
+    "loopEnd": 1.50469,
+    "gain": 1.999
+   }
+  ],
+  "viola": [
+   {
+    "file": "viola/G3.wav",
+    "f0": 195.394,
+    "loopStart": 0.50986,
+    "loopEnd": 1.51075,
+    "gain": 3
+   },
+   {
+    "file": "viola/B3.wav",
+    "f0": 246.55,
+    "loopStart": 0.50383,
+    "loopEnd": 1.50534,
+    "gain": 1.955
+   },
+   {
+    "file": "viola/D4.wav",
+    "f0": 293.556,
+    "loopStart": 0.51,
+    "loopEnd": 1.51162,
+    "gain": 1.682
+   },
+   {
+    "file": "viola/F4.wav",
+    "f0": 349.691,
+    "loopStart": 0.50875,
+    "loopEnd": 1.5093,
+    "gain": 2.209
+   },
+   {
+    "file": "viola/A4.wav",
+    "f0": 441.72,
+    "loopStart": 0.51,
+    "loopEnd": 1.51093,
+    "gain": 2.408
+   }
+  ],
+  "violin": [
+   {
+    "file": "violin/Fs4.wav",
+    "f0": 370.179,
+    "loopStart": 0.51,
+    "loopEnd": 1.50964,
+    "gain": 2.236
+   },
+   {
+    "file": "violin/A4.wav",
+    "f0": 440.604,
+    "loopStart": 0.51,
+    "loopEnd": 1.51069,
+    "gain": 1.84
+   },
+   {
+    "file": "violin/C5.wav",
+    "f0": 522.407,
+    "loopStart": 0.51,
+    "loopEnd": 1.50928,
+    "gain": 2.904
+   },
+   {
+    "file": "violin/E5.wav",
+    "f0": 658.539,
+    "loopStart": 0.51,
+    "loopEnd": 1.51063,
+    "gain": 3
+   },
+   {
+    "file": "violin/G5.wav",
+    "f0": 783.763,
+    "loopStart": 0.51,
+    "loopEnd": 1.50941,
+    "gain": 1.838
+   },
+   {
+    "file": "violin/B5.wav",
+    "f0": 983.964,
+    "loopStart": 0.51,
+    "loopEnd": 1.51045,
+    "gain": 2.071
+   },
+   {
+    "file": "violin/D6.wav",
+    "f0": 1174.478,
+    "loopStart": 0.51,
+    "loopEnd": 1.50999,
+    "gain": 3
+   },
+   {
+    "file": "violin/E6.wav",
+    "f0": 1327.52,
+    "loopStart": 0.50054,
+    "loopEnd": 1.50063,
+    "gain": 2.31
+   },
+   {
+    "file": "violin/G6.wav",
+    "f0": 1572.721,
+    "loopStart": 0.50063,
+    "loopEnd": 1.50075,
+    "gain": 2.056
+   },
+   {
+    "file": "violin/A6.wav",
+    "f0": 1769.023,
+    "loopStart": 0.50184,
+    "loopEnd": 1.50209,
+    "gain": 2.585
+   },
+   {
+    "file": "violin/C7.wav",
+    "f0": 2088.558,
+    "loopStart": 0.50177,
+    "loopEnd": 1.50185,
+    "gain": 2.927
+   }
+  ],
+  "bassoon": [
+   {
+    "file": "bassoon/As1.wav",
+    "f0": 58.264,
+    "loopStart": 0.51,
+    "loopEnd": 1.50545,
+    "gain": 2.249
+   },
+   {
+    "file": "bassoon/Cs2.wav",
+    "f0": 69.288,
+    "loopStart": 0.51,
+    "loopEnd": 1.50582,
+    "gain": 1.784
+   },
+   {
+    "file": "bassoon/F2.wav",
+    "f0": 87.311,
+    "loopStart": 0.5068,
+    "loopEnd": 1.50325,
+    "gain": 1.743
+   },
+   {
+    "file": "bassoon/A2.wav",
+    "f0": 110.002,
+    "loopStart": 0.50984,
+    "loopEnd": 1.50982,
+    "gain": 1.672
+   },
+   {
+    "file": "bassoon/As2.wav",
+    "f0": 116.572,
+    "loopStart": 0.50785,
+    "loopEnd": 1.51152,
+    "gain": 1.582
+   },
+   {
+    "file": "bassoon/C3.wav",
+    "f0": 130.82,
+    "loopStart": 0.50939,
+    "loopEnd": 1.51079,
+    "gain": 1.549
+   },
+   {
+    "file": "bassoon/G3.wav",
+    "f0": 196.063,
+    "loopStart": 0.50664,
+    "loopEnd": 1.50632,
+    "gain": 1.546
+   }
+  ],
+  "clarinet": [
+   {
+    "file": "clarinet/D3.wav",
+    "f0": 147.049,
+    "loopStart": 0.51,
+    "loopEnd": 1.50973,
+    "gain": 1.436
+   },
+   {
+    "file": "clarinet/F3.wav",
+    "f0": 174.725,
+    "loopStart": 0.50549,
+    "loopEnd": 1.50705,
+    "gain": 1.715
+   },
+   {
+    "file": "clarinet/As3.wav",
+    "f0": 233.182,
+    "loopStart": 0.51,
+    "loopEnd": 1.50923,
+    "gain": 1.242
+   },
+   {
+    "file": "clarinet/D4.wav",
+    "f0": 293.91,
+    "loopStart": 0.51,
+    "loopEnd": 1.51048,
+    "gain": 1.078
+   },
+   {
+    "file": "clarinet/F4.wav",
+    "f0": 350.261,
+    "loopStart": 0.51,
+    "loopEnd": 1.5093,
+    "gain": 1.017
+   },
+   {
+    "file": "clarinet/As4.wav",
+    "f0": 466.706,
+    "loopStart": 0.51,
+    "loopEnd": 1.51069,
+    "gain": 0.933
+   }
+  ],
+  "oboe": [
+   {
+    "file": "oboe/F4.wav",
+    "f0": 349.833,
+    "loopStart": 0.50832,
+    "loopEnd": 1.50882,
+    "gain": 1.204
+   },
+   {
+    "file": "oboe/As4.wav",
+    "f0": 466.795,
+    "loopStart": 0.50937,
+    "loopEnd": 1.50989,
+    "gain": 1.378
+   },
+   {
+    "file": "oboe/D5.wav",
+    "f0": 588.052,
+    "loopStart": 0.50515,
+    "loopEnd": 1.50505,
+    "gain": 1.513
+   },
+   {
+    "file": "oboe/F5.wav",
+    "f0": 699.631,
+    "loopStart": 0.5066,
+    "loopEnd": 1.50717,
+    "gain": 0.994
+   },
+   {
+    "file": "oboe/As5.wav",
+    "f0": 931.659,
+    "loopStart": 0.50109,
+    "loopEnd": 1.5014,
+    "gain": 1.401
+   }
+  ],
+  "flute": [
+   {
+    "file": "flute/E5.wav",
+    "f0": 659.227,
+    "loopStart": 0.51,
+    "loopEnd": 1.50964,
+    "gain": 1.379
+   },
+   {
+    "file": "flute/A5.wav",
+    "f0": 879.994,
+    "loopStart": 0.51,
+    "loopEnd": 1.51,
+    "gain": 1.025
+   },
+   {
+    "file": "flute/C6.wav",
+    "f0": 1046.499,
+    "loopStart": 0.51,
+    "loopEnd": 1.51048,
+    "gain": 1.062
+   },
+   {
+    "file": "flute/E6.wav",
+    "f0": 1318.546,
+    "loopStart": 0.51,
+    "loopEnd": 1.51035,
+    "gain": 1.766
+   },
+   {
+    "file": "flute/A6.wav",
+    "f0": 1760.045,
+    "loopStart": 0.51,
+    "loopEnd": 1.50998,
+    "gain": 0.945
+   },
+   {
+    "file": "flute/C7.wav",
+    "f0": 2093.014,
+    "loopStart": 0.51,
+    "loopEnd": 1.50998,
+    "gain": 1.241
+   }
+  ],
+  "tuba": [
+   {
+    "file": "tuba/As1.wav",
+    "f0": 58.238,
+    "loopStart": 0.50295,
+    "loopEnd": 1.49877,
+    "gain": 1.888
+   },
+   {
+    "file": "tuba/Ds2.wav",
+    "f0": 77.789,
+    "loopStart": 0.51,
+    "loopEnd": 1.51229,
+    "gain": 1.908
+   },
+   {
+    "file": "tuba/F2.wav",
+    "f0": 87.379,
+    "loopStart": 0.51,
+    "loopEnd": 1.50551,
+    "gain": 2.153
+   },
+   {
+    "file": "tuba/As2.wav",
+    "f0": 116.459,
+    "loopStart": 0.51,
+    "loopEnd": 1.50594,
+    "gain": 1.73
+   }
+  ],
+  "trombone": [
+   {
+    "file": "trombone/F2.wav",
+    "f0": 87.308,
+    "loopStart": 0.50358,
+    "loopEnd": 1.50038,
+    "gain": 2.311
+   },
+   {
+    "file": "trombone/As2.wav",
+    "f0": 116.542,
+    "loopStart": 0.50692,
+    "loopEnd": 1.5109,
+    "gain": 2.797
+   },
+   {
+    "file": "trombone/D3.wav",
+    "f0": 146.818,
+    "loopStart": 0.51,
+    "loopEnd": 1.51126,
+    "gain": 1.854
+   },
+   {
+    "file": "trombone/F3.wav",
+    "f0": 174.63,
+    "loopStart": 0.51,
+    "loopEnd": 1.51218,
+    "gain": 1.684
+   },
+   {
+    "file": "trombone/C4.wav",
+    "f0": 261.623,
+    "loopStart": 0.51,
+    "loopEnd": 1.51142,
+    "gain": 1.272
+   }
+  ],
+  "horn": [
+   {
+    "file": "horn/F3.wav",
+    "f0": 174.428,
+    "loopStart": 0.51,
+    "loopEnd": 1.50745,
+    "gain": 1.895
+   },
+   {
+    "file": "horn/A3.wav",
+    "f0": 219.981,
+    "loopStart": 0.50535,
+    "loopEnd": 1.50538,
+    "gain": 1.12
+   },
+   {
+    "file": "horn/C4.wav",
+    "f0": 261.369,
+    "loopStart": 0.5044,
+    "loopEnd": 1.50295,
+    "gain": 1.355
+   },
+   {
+    "file": "horn/D5.wav",
+    "f0": 587.645,
+    "loopStart": 0.51,
+    "loopEnd": 1.50999,
+    "gain": 1.469
+   }
+  ],
+  "trumpet": [
+   {
+    "file": "trumpet/C4.wav",
+    "f0": 261.02,
+    "loopStart": 0.51,
+    "loopEnd": 1.50879,
+    "gain": 2.408
+   },
+   {
+    "file": "trumpet/Ds4.wav",
+    "f0": 311.285,
+    "loopStart": 0.51,
+    "loopEnd": 1.50882,
+    "gain": 1.661
+   },
+   {
+    "file": "trumpet/G4.wav",
+    "f0": 393.734,
+    "loopStart": 0.51,
+    "loopEnd": 1.51072,
+    "gain": 1.412
+   },
+   {
+    "file": "trumpet/As4.wav",
+    "f0": 466.927,
+    "loopStart": 0.51,
+    "loopEnd": 1.51029,
+    "gain": 2.299
+   },
+   {
+    "file": "trumpet/D5.wav",
+    "f0": 587.59,
+    "loopStart": 0.50764,
+    "loopEnd": 1.50692,
+    "gain": 2.702
+   },
+   {
+    "file": "trumpet/F5.wav",
+    "f0": 699.102,
+    "loopStart": 0.50084,
+    "loopEnd": 1.50138,
+    "gain": 1.944
+   },
+   {
+    "file": "trumpet/A5.wav",
+    "f0": 878.846,
+    "loopStart": 0.50488,
+    "loopEnd": 1.50498,
+    "gain": 2.247
+   },
+   {
+    "file": "trumpet/C6.wav",
+    "f0": 1046.869,
+    "loopStart": 0.50444,
+    "loopEnd": 1.50481,
+    "gain": 1.929
+   }
+  ],
+  "marimba": [
+   {
+    "file": "marimba/F2.wav",
+    "f0": 87.318,
+    "loopStart": 0.97304,
+    "loopEnd": 1.47715,
+    "gain": 2.607
+   },
+   {
+    "file": "marimba/C3.wav",
+    "f0": 131.243,
+    "loopStart": 0.12399,
+    "loopEnd": 0.62705,
+    "gain": 2.304
+   },
+   {
+    "file": "marimba/G3.wav",
+    "f0": 195.865,
+    "loopStart": 0.23875,
+    "loopEnd": 0.73906,
+    "gain": 2.292
+   },
+   {
+    "file": "marimba/B3.wav",
+    "f0": 247.267,
+    "loopStart": 0.42678,
+    "loopEnd": 0.92831,
+    "gain": 1.626
+   },
+   {
+    "file": "marimba/F4.wav",
+    "f0": 349.176,
+    "loopStart": 0.39574,
+    "loopEnd": 0.89691,
+    "gain": 2.096
+   },
+   {
+    "file": "marimba/C5.wav",
+    "f0": 524.599,
+    "loopStart": 0.1866,
+    "loopEnd": 0.68601,
+    "gain": 2.104
+   }
+  ],
+  "xylophone": [
+   {
+    "file": "xylophone/G4.wav",
+    "f0": 395.148,
+    "loopStart": 0.12206,
+    "loopEnd": 0.62084,
+    "gain": 3
+   },
+   {
+    "file": "xylophone/C5.wav",
+    "f0": 526.994,
+    "loopStart": 0.15764,
+    "loopEnd": 0.6567,
+    "gain": 3
+   },
+   {
+    "file": "xylophone/G5.wav",
+    "f0": 790.238,
+    "loopStart": 0.219,
+    "loopEnd": 0.71886,
+    "gain": 2.638
+   },
+   {
+    "file": "xylophone/C6.wav",
+    "f0": 1055.855,
+    "loopStart": 0.19075,
+    "loopEnd": 0.69081,
+    "gain": 2.87
+   }
+  ],
+  "glockenspiel": [
+   {
+    "file": "glockenspiel/G5.wav",
+    "f0": 787.701,
+    "loopStart": 0.13524,
+    "loopEnd": 0.63543,
+    "gain": 2.953
+   },
+   {
+    "file": "glockenspiel/C6.wav",
+    "f0": 1053.647,
+    "loopStart": 0.20503,
+    "loopEnd": 0.7052,
+    "gain": 2.841
+   },
+   {
+    "file": "glockenspiel/G6.wav",
+    "f0": 1578.772,
+    "loopStart": 0.1268,
+    "loopEnd": 0.62656,
+    "gain": 3
+   },
+   {
+    "file": "glockenspiel/C7.wav",
+    "f0": 2111.547,
+    "loopStart": 0.12678,
+    "loopEnd": 0.62689,
+    "gain": 3
+   }
+  ]
+ }
+}
